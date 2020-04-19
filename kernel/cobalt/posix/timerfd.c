@@ -32,7 +32,7 @@ struct cobalt_tfd {
 	struct rtdm_fd fd;
 	struct xntimer timer;
 	DECLARE_XNSELECT(read_select);
-	struct itimerspec value;
+	struct itimerspec64 value;
 	struct xnsynch readers;
 	struct xnthread *target;
 };
@@ -236,8 +236,8 @@ static inline void tfd_put(struct cobalt_tfd *tfd)
 }
 
 int __cobalt_timerfd_settime(int fd, int flags,
-			     const struct itimerspec *value,
-			     struct itimerspec *ovalue)
+			     const struct itimerspec64 *value,
+			     struct itimerspec64 *ovalue)
 {
 	struct cobalt_tfd *tfd;
 	int cflag, ret;
@@ -280,10 +280,10 @@ out:
 
 COBALT_SYSCALL(timerfd_settime, primary,
 	       (int fd, int flags,
-		const struct itimerspec __user *new_value,
-		struct itimerspec __user *old_value))
+		const struct itimerspec64 __user *new_value,
+		struct itimerspec64 __user *old_value))
 {
-	struct itimerspec ovalue, value;
+	struct itimerspec64 ovalue, value;
 	int ret;
 
 	ret = cobalt_copy_from_user(&value, new_value, sizeof(value));
@@ -304,7 +304,7 @@ COBALT_SYSCALL(timerfd_settime, primary,
 	return ret;
 }
 
-int __cobalt_timerfd_gettime(int fd, struct itimerspec *value)
+int __cobalt_timerfd_gettime(int fd, struct itimerspec64 *value)
 {
 	struct cobalt_tfd *tfd;
 	spl_t s;
@@ -323,9 +323,9 @@ int __cobalt_timerfd_gettime(int fd, struct itimerspec *value)
 }
 
 COBALT_SYSCALL(timerfd_gettime, current,
-	       (int fd, struct itimerspec __user *curr_value))
+	       (int fd, struct itimerspec64 __user *curr_value))
 {
-	struct itimerspec value;
+	struct itimerspec64 value;
 	int ret;
 
 	ret = __cobalt_timerfd_gettime(fd, &value);

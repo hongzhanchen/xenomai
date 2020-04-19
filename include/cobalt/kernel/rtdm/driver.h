@@ -32,6 +32,7 @@
 #include <linux/cdev.h>
 #include <linux/wait.h>
 #include <linux/notifier.h>
+#include <linux/irq_work.h>
 #include <xenomai/version.h>
 #include <cobalt/kernel/heap.h>
 #include <cobalt/kernel/sched.h>
@@ -541,13 +542,13 @@ rtdm_execute_atomically(void) { }
 /**
  * Static lock initialisation
  */
-#define RTDM_LOCK_UNLOCKED(__name)	IPIPE_SPIN_LOCK_UNLOCKED
+#define RTDM_LOCK_UNLOCKED(__name)	__HARD_SPIN_LOCK_INITIALIZER(__name)
 
 #define DEFINE_RTDM_LOCK(__name)		\
 	rtdm_lock_t __name = RTDM_LOCK_UNLOCKED(__name)
 
 /** Lock variable */
-typedef ipipe_spinlock_t rtdm_lock_t;
+typedef hard_spinlock_t rtdm_lock_t;
 
 /** Variable to save the context while holding a lock */
 typedef unsigned long rtdm_lockctx_t;
@@ -606,7 +607,7 @@ static inline rtdm_lockctx_t __rtdm_lock_get_irqsave(rtdm_lock_t *lock)
 {
 	rtdm_lockctx_t context;
 
-	context = ipipe_test_and_stall_head();
+	context = oob_irq_save();
 	raw_spin_lock(lock);
 	xnsched_lock();
 
@@ -626,7 +627,7 @@ void rtdm_lock_put_irqrestore(rtdm_lock_t *lock, rtdm_lockctx_t context)
 {
 	raw_spin_unlock(lock);
 	xnsched_unlock();
-	ipipe_restore_head(context);
+	oob_irq_restore(context);
 }
 
 /**
@@ -898,19 +899,13 @@ typedef void (*rtdm_nrtsig_handler_t)(rtdm_nrtsig_t *nrt_sig, void *arg);
 struct rtdm_nrtsig {
 	rtdm_nrtsig_handler_t handler;
 	void *arg;
+	struct irq_work irq_work;
 };
 
 void rtdm_schedule_nrt_work(struct work_struct *lostage_work);
 /** @} rtdm_nrtsignal */
 
 #ifndef DOXYGEN_CPP /* Avoid static inline tags for RTDM in doxygen */
-static inline void rtdm_nrtsig_init(rtdm_nrtsig_t *nrt_sig,
-				rtdm_nrtsig_handler_t handler, void *arg)
-{
-	nrt_sig->handler = handler;
-	nrt_sig->arg = arg;
-}
-
 static inline void rtdm_nrtsig_destroy(rtdm_nrtsig_t *nrt_sig)
 {
 	nrt_sig->handler = NULL;
@@ -1315,7 +1310,7 @@ static inline int rtdm_rt_capable(struct rtdm_fd *fd)
 
 static inline int rtdm_in_rt_context(void)
 {
-	return (ipipe_current_domain != ipipe_root_domain);
+	return running_oob();
 }
 
 #define RTDM_IOV_FASTMAX  16

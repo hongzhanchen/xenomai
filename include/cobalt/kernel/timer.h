@@ -502,6 +502,8 @@ static inline void xntimer_dequeue(struct xntimer *timer,
 	timer->status |= XNTIMER_DEQUEUED;
 }
 
+struct xnthread;
+
 unsigned long long xntimer_get_overruns(struct xntimer *timer,
 					struct xnthread *waiter,
 					xnticks_t now);

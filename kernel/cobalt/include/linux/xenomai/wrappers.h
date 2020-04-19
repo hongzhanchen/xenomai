@@ -43,7 +43,7 @@
 		smp_store_mb((tsk)->state, (state_value))
 #endif
 
-#include <linux/ipipe.h>
+//#include <linux/ipipe.h>
 
 #ifndef ipipe_root_nr_syscalls
 #define ipipe_root_nr_syscalls(ti)	NR_syscalls

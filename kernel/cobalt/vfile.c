@@ -338,12 +338,12 @@ ssize_t vfile_snapshot_write(struct file *file, const char __user *buf,
 	return ret;
 }
 
-static struct file_operations vfile_snapshot_fops = {
-	.open = vfile_snapshot_open,
-	.read = seq_read,
-	.write = vfile_snapshot_write,
-	.llseek = seq_lseek,
-	.release = vfile_snapshot_release,
+static struct proc_ops vfile_snapshot_fops = {
+	.proc_open = vfile_snapshot_open,
+	.proc_read = seq_read,
+	.proc_write = vfile_snapshot_write,
+	.proc_lseek = seq_lseek,
+	.proc_release = vfile_snapshot_release,
 };
 
 /**
@@ -590,12 +590,12 @@ ssize_t vfile_regular_write(struct file *file, const char __user *buf,
 	return ret;
 }
 
-static struct file_operations vfile_regular_fops = {
-	.open = vfile_regular_open,
-	.read = seq_read,
-	.write = vfile_regular_write,
-	.llseek = seq_lseek,
-	.release = vfile_regular_release,
+static struct proc_ops vfile_regular_fops = {
+	.proc_open = vfile_regular_open,
+	.proc_read = seq_read,
+	.proc_write = vfile_regular_write,
+	.proc_lseek = seq_lseek,
+	.proc_release = vfile_regular_release,
 };
 
 /**

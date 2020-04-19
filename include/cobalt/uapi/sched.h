@@ -31,15 +31,15 @@
 
 struct __sched_ss_param {
 	int __sched_low_priority;
-	struct timespec __sched_repl_period;
-	struct timespec __sched_init_budget;
+	struct timespec64 __sched_repl_period;
+	struct timespec64 __sched_init_budget;
 	int __sched_max_repl;
 };
 
 #define sched_rr_quantum	sched_u.rr.__sched_rr_quantum
 
 struct __sched_rr_param {
-	struct timespec __sched_rr_quantum;
+	struct timespec64 __sched_rr_quantum;
 };
 
 #ifndef SCHED_TP
@@ -52,8 +52,8 @@ struct __sched_tp_param {
 };
 
 struct sched_tp_window {
-	struct timespec offset;
-	struct timespec duration;
+	struct timespec64 offset;
+	struct timespec64 duration;
 	int ptid;
 };
 

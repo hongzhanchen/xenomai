@@ -203,7 +203,7 @@ drain:
 }
 
 int __cobalt_monitor_wait(struct cobalt_monitor_shadow __user *u_mon,
-			  int event, const struct timespec *ts,
+			  int event, const struct timespec64 *ts,
 			  int __user *u_ret)
 {
 	struct cobalt_thread *curr = cobalt_current_thread();
@@ -291,10 +291,10 @@ out:
 
 COBALT_SYSCALL(monitor_wait, nonrestartable,
 	       (struct cobalt_monitor_shadow __user *u_mon,
-	       int event, const struct timespec __user *u_ts,
+	       int event, const struct timespec64 __user *u_ts,
 	       int __user *u_ret))
 {
-	struct timespec ts, *tsp = NULL;
+	struct timespec64 ts, *tsp = NULL;
 	int ret;
 
 	if (u_ts) {

@@ -1539,7 +1539,12 @@ int rtdm_irq_disable(rtdm_irq_t *irq_handle);
  * @{
  */
 
-#ifdef DOXYGEN_CPP /* Only used for doxygen doc generation */
+static void nrtsig_execute(struct irq_work *work)
+{
+	rtdm_nrtsig_t *nrt_sig = container_of(work, rtdm_nrtsig_t, irq_work);
+
+	nrt_sig->handler(nrt_sig, nrt_sig->arg);
+}
 
 /**
  * @brief Register a non-real-time signal handler
@@ -1555,8 +1560,16 @@ int rtdm_irq_disable(rtdm_irq_t *irq_handle);
  * @coretags{task-unrestricted}
  */
 int rtdm_nrtsig_init(rtdm_nrtsig_t *nrt_sig, rtdm_nrtsig_handler_t handler,
-		     void *arg);
+		     void *arg)
+{
+	nrt_sig->handler = handler;
+	nrt_sig->arg = arg;
+	init_irq_work(&nrt_sig->irq_work, nrtsig_execute);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(rtdm_nrtsig_init);
 
+#ifdef DOXYGEN_CPP /* Only used for doxygen doc generation */
 /**
  * @brief Release a non-realtime signal handler
  *
@@ -1567,7 +1580,7 @@ int rtdm_nrtsig_init(rtdm_nrtsig_t *nrt_sig, rtdm_nrtsig_handler_t handler,
 void rtdm_nrtsig_destroy(rtdm_nrtsig_t *nrt_sig);
 #endif /* DOXYGEN_CPP */
 
-struct nrtsig_work {
+/*struct nrtsig_work {
 	struct ipipe_work_header work;
 	struct rtdm_nrtsig *nrtsig;
 };
@@ -1580,7 +1593,7 @@ static void nrtsig_execute(struct ipipe_work_header *work)
 	w = container_of(work, typeof(*w), work);
 	nrtsig = w->nrtsig;
 	nrtsig->handler(nrtsig, nrtsig->arg);
-}
+}*/
 
 /**
  * Trigger non-real-time signal
@@ -1591,18 +1604,19 @@ static void nrtsig_execute(struct ipipe_work_header *work)
  */
 void rtdm_nrtsig_pend(rtdm_nrtsig_t *nrt_sig)
 {
-	struct nrtsig_work nrtsig_work = {
+/*	struct nrtsig_work nrtsig_work = {
 		.work = {
 			.size = sizeof(nrtsig_work),
 			.handler = nrtsig_execute,
 		},
 		.nrtsig = nrt_sig,
 	};
-	ipipe_post_work_root(&nrtsig_work, work);
+	ipipe_post_work_root(&nrtsig_work, work);*/
+	irq_work_queue(&nrt_sig->irq_work);
 }
 EXPORT_SYMBOL_GPL(rtdm_nrtsig_pend);
 
-struct lostage_schedule_work {
+/*struct lostage_schedule_work {
 	struct ipipe_work_header work;
 	struct work_struct *lostage_work;
 };
@@ -1613,7 +1627,31 @@ static void lostage_schedule_work(struct ipipe_work_header *work)
 
 	w = container_of(work, typeof(*w), work);
 	schedule_work(w->lostage_work);
+}*/
+
+static LIST_HEAD(lostage_work_queue);
+static DEFINE_RTDM_LOCK(lostage_work_lock);
+
+static void do_lostage_work(struct irq_work *work)
+{
+	struct work_struct *lostage_work;
+	rtdm_lockctx_t context;
+
+	rtdm_lock_get_irqsave(&lostage_work_lock, context);
+	while (!list_empty(&lostage_work_queue)) {
+		lostage_work = list_first_entry(&lostage_work_queue,
+						struct work_struct, entry);
+		list_del_init(&lostage_work->entry);
+		rtdm_lock_put_irqrestore(&lostage_work_lock, context);
+
+		schedule_work(lostage_work);
+
+		rtdm_lock_get_irqsave(&lostage_work_lock, context);
+	}
+	rtdm_lock_put_irqrestore(&lostage_work_lock, context);
 }
+
+static DEFINE_IRQ_WORK(lostage_irq_work, do_lostage_work);
 
 /**
  * Put a work task in Linux non real-time global workqueue from primary mode.
@@ -1622,6 +1660,7 @@ static void lostage_schedule_work(struct ipipe_work_header *work)
  */
 void rtdm_schedule_nrt_work(struct work_struct *lostage_work)
 {
+#if 0
 	struct lostage_schedule_work ipipe_work = {
 		.work = {
 			.size = sizeof(ipipe_work),
@@ -1634,6 +1673,14 @@ void rtdm_schedule_nrt_work(struct work_struct *lostage_work)
 		schedule_work(lostage_work);
 	else
 		ipipe_post_work_root(&ipipe_work, work);
+#endif
+	rtdm_lockctx_t context;
+
+	rtdm_lock_get_irqsave(&lostage_work_lock, context);
+	list_add_tail(&lostage_work_queue, &lostage_work->entry);
+	rtdm_lock_put_irqrestore(&lostage_work_lock, context);
+
+	irq_work_queue(&lostage_irq_work);
 }
 EXPORT_SYMBOL_GPL(rtdm_schedule_nrt_work);
 
@@ -1695,8 +1742,9 @@ static int mmap_kmem_helper(struct vm_area_struct *vma, void *va)
 		}
 	}
 
-	if (cobalt_machine.prefault)
-		cobalt_machine.prefault(vma);
+#warning TODO
+/*	if (cobalt_machine.prefault)
+		cobalt_machine.prefault(vma);*/
 #endif
 
 	return ret;

@@ -18,7 +18,7 @@
  */
 #include <linux/types.h>
 #include <linux/err.h>
-#include <linux/ipipe.h>
+//#include <linux/ipipe.h>
 #include <linux/sched.h>
 #include <linux/kconfig.h>
 #include <linux/unistd.h>
@@ -112,7 +112,7 @@ static COBALT_SYSCALL(migrate, current, (int domain))
 {
 	struct xnthread *thread = xnthread_current();
 
-	if (ipipe_root_p) {
+	if (running_inband()) {
 		if (domain == COBALT_PRIMARY) {
 			if (thread == NULL)
 				return -EPERM;
@@ -253,6 +253,8 @@ static COBALT_SYSCALL(backtrace, lostage,
 static COBALT_SYSCALL(serialdbg, current,
 		      (const char __user *u_msg, int len))
 {
+	return -ENOSYS;
+/*
 	char buf[128];
 	int n;
 
@@ -268,6 +270,7 @@ static COBALT_SYSCALL(serialdbg, current,
 	}
 
 	return 0;
+*/
 }
 
 static void stringify_feature_set(unsigned long fset, char *buf, int size)
@@ -475,7 +478,7 @@ static inline int allowed_syscall(struct cobalt_process *process,
 	return cap_raised(current_cap(), CAP_SYS_NICE);
 }
 
-static int handle_head_syscall(struct ipipe_domain *ipd, struct pt_regs *regs)
+static int handle_head_syscall(struct irq_stage *ipd, struct pt_regs *regs)
 {
 	struct cobalt_process *process;
 	int switched, sigs, sysflags;
@@ -553,7 +556,7 @@ restart:
 		/*
 		 * The syscall must run from the Linux domain.
 		 */
-		if (ipd == &xnsched_realtime_domain) {
+		if (ipd == &oob_stage) {
 			/*
 			 * Request originates from the Xenomai domain:
 			 * relax the caller then invoke the syscall
@@ -578,7 +581,7 @@ restart:
 		 * hand it over to our secondary-mode dispatcher.
 		 * Otherwise, invoke the syscall handler immediately.
 		 */
-		if (ipd != &xnsched_realtime_domain)
+		if (ipd != &oob_stage)
 			return KEVENT_PROPAGATE;
 	}
 
@@ -667,7 +670,7 @@ bad_syscall:
 	return KEVENT_STOP;
 }
 
-static int handle_root_syscall(struct ipipe_domain *ipd, struct pt_regs *regs)
+static int handle_root_syscall(struct pt_regs *regs)
 {
 	int sysflags, switched, sigs;
 	struct xnthread *thread;
@@ -777,7 +780,7 @@ ret_handled:
 	return KEVENT_STOP;
 }
 
-int ipipe_syscall_hook(struct ipipe_domain *ipd, struct pt_regs *regs)
+/*int ipipe_syscall_hook(struct ipipe_domain *ipd, struct pt_regs *regs)
 {
 	if (unlikely(ipipe_root_p))
 		return handle_root_syscall(ipd, regs);
@@ -793,6 +796,14 @@ int ipipe_fastcall_hook(struct pt_regs *regs)
 	XENO_BUG_ON(COBALT, ret == KEVENT_PROPAGATE);
 
 	return ret;
+}*/
+
+int handle_pipelined_syscall(struct irq_stage *stage, struct pt_regs *regs)
+{
+	if (unlikely(running_inband()))
+		return handle_root_syscall(regs);
+
+	return handle_head_syscall(stage, regs);
 }
 
 long cobalt_restart_syscall_placeholder(struct restart_block *param)

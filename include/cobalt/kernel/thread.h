@@ -198,6 +198,8 @@ struct xnthread {
 	const char *exe_path;	/* Executable path */
 	u32 proghash;		/* Hash value for exe_path */
 #endif
+
+	struct dovetail_altsched_context altsched;
 };
 
 static inline int xnthread_get_state(const struct xnthread *thread)
@@ -372,7 +374,7 @@ void __xnthread_discard(struct xnthread *thread);
  */
 static inline struct xnthread *xnthread_current(void)
 {
-	return ipipe_current_threadinfo()->thread;
+	return dovetail_current_state()->thread;
 }
 
 /**
@@ -388,7 +390,7 @@ static inline struct xnthread *xnthread_current(void)
  */
 static inline struct xnthread *xnthread_from_task(struct task_struct *p)
 {
-	return ipipe_task_threadinfo(p)->thread;
+	return dovetail_task_state(p)->thread;
 }
 
 /**

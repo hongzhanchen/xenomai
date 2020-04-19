@@ -19,7 +19,7 @@
 #ifndef _COBALT_KERNEL_CLOCK_H
 #define _COBALT_KERNEL_CLOCK_H
 
-#include <linux/ipipe.h>
+//#include <linux/ipipe.h>
 #include <cobalt/kernel/list.h>
 #include <cobalt/kernel/vfile.h>
 #include <cobalt/uapi/kernel/types.h>
@@ -52,7 +52,7 @@ struct xnclock {
 		xnticks_t (*read_raw)(struct xnclock *clock);
 		xnticks_t (*read_monotonic)(struct xnclock *clock);
 		int (*set_time)(struct xnclock *clock,
-				const struct timespec *ts);
+				const struct timespec64 *ts);
 		xnsticks_t (*ns_to_ticks)(struct xnclock *clock,
 					  xnsticks_t ns);
 		xnsticks_t (*ticks_to_ns)(struct xnclock *clock,
@@ -65,7 +65,7 @@ struct xnclock {
 					    struct xnsched *sched);
 #endif
 		int (*adjust_time)(struct xnclock *clock,
-				   struct timex *tx);
+				   struct __kernel_timex *tx);
 		int (*set_gravity)(struct xnclock *clock,
 				   const struct xnclock_gravity *p);
 		void (*reset_gravity)(struct xnclock *clock);
@@ -128,9 +128,10 @@ xnticks_t xnclock_core_read_monotonic(void);
 
 static inline xnticks_t xnclock_core_read_raw(void)
 {
-	unsigned long long t;
+/*	unsigned long long t;
 	ipipe_read_tsc(t);
-	return t;
+	return t;*/
+	return ktime_get();
 }
 
 /* We use the Linux defaults */
@@ -213,7 +214,7 @@ static inline xnticks_t xnclock_read_monotonic(struct xnclock *clock)
 }
 
 static inline int xnclock_set_time(struct xnclock *clock,
-				   const struct timespec *ts)
+				   const struct timespec64 *ts)
 {
 	if (likely(clock == &nkclock))
 		return -EINVAL;
@@ -266,7 +267,7 @@ static inline xnticks_t xnclock_read_monotonic(struct xnclock *clock)
 }
 
 static inline int xnclock_set_time(struct xnclock *clock,
-				   const struct timespec *ts)
+				   const struct timespec64 *ts)
 {
 	/*
 	 * There is no way to change the core clock's idea of time.
@@ -277,7 +278,7 @@ static inline int xnclock_set_time(struct xnclock *clock,
 #endif /* !CONFIG_XENO_OPT_EXTCLOCK */
 
 static inline int xnclock_adjust_time(struct xnclock *clock,
-				      struct timex *tx)
+				      struct __kernel_timex *tx)
 {
 	if (clock->ops.adjust_time == NULL)
 		return -EOPNOTSUPP;

@@ -36,8 +36,8 @@
 #include <linux/sched.h>
 #include <linux/signal.h>
 #include <linux/kallsyms.h>
-#include <linux/ipipe.h>
-#include <linux/ipipe_tickdev.h>
+//#include <linux/ipipe.h>
+//#include <linux/ipipe_tickdev.h>
 #include <cobalt/kernel/sched.h>
 #include <cobalt/kernel/heap.h>
 #include <cobalt/kernel/synch.h>
@@ -471,7 +471,7 @@ EXPORT_SYMBOL_GPL(cobalt_unregister_personality);
 struct xnthread_personality *
 cobalt_push_personality(int xid)
 {
-	struct ipipe_threadinfo *p = ipipe_current_threadinfo();
+	struct oob_thread_state *p = dovetail_current_state();
 	struct xnthread_personality *prev, *next;
 	struct xnthread *thread = p->thread;
 
@@ -512,7 +512,7 @@ EXPORT_SYMBOL_GPL(cobalt_push_personality);
  */
 void cobalt_pop_personality(struct xnthread_personality *prev)
 {
-	struct ipipe_threadinfo *p = ipipe_current_threadinfo();
+	struct oob_thread_state *p = dovetail_current_state();
 	struct xnthread *thread = p->thread;
 
 	secondary_mode_only();
@@ -569,16 +569,16 @@ EXPORT_SYMBOL_GPL(cobalt_yield);
 
 static inline void init_uthread_info(struct xnthread *thread)
 {
-	struct ipipe_threadinfo *p;
+	struct oob_thread_state *p = dovetail_current_state();
 
-	p = ipipe_current_threadinfo();
 	p->thread = thread;
 	p->process = cobalt_search_process(current->mm);
 }
 
 static inline void clear_threadinfo(void)
 {
-	struct ipipe_threadinfo *p = ipipe_current_threadinfo();
+	struct oob_thread_state *p = dovetail_current_state();
+
 	p->thread = NULL;
 	p->process = NULL;
 }
@@ -599,7 +599,7 @@ static inline int disable_ondemand_memory(void)
 		return 0;
 	}
 
-	return __ipipe_disable_ondemand_mappings(p);
+	return force_commit_memory();
 }
 
 static inline int get_mayday_prot(void)
@@ -709,7 +709,10 @@ int cobalt_map_user(struct xnthread *thread, __u32 __user *u_winoff)
 	 * it.
 	 */
 	xnthread_run_handler(thread, map_thread);
-	ipipe_enable_notifier(current);
+//	ipipe_enable_notifier(current);
+	dovetail_init_altsched(&thread->altsched);
+	//set_oob_threadinfo(curr);
+	dovetail_start_altsched();
 
 	attr.mode = 0;
 	attr.entry = NULL;
@@ -795,7 +798,7 @@ static void cobalt_unregister_debugged_thread(struct xnthread *thread)
 		resume_debugged_process(process);
 }
 
-static inline int handle_exception(struct ipipe_trap_data *d)
+static inline int handle_exception(struct xnarch_fault_data *d)
 {
 	struct xnthread *thread;
 	struct xnsched *sched;
@@ -803,7 +806,7 @@ static inline int handle_exception(struct ipipe_trap_data *d)
 	sched = xnsched_current();
 	thread = sched->curr;
 
-	trace_cobalt_thread_fault(d);
+//	trace_cobalt_thread_fault(d);
 
 	if (xnthread_test_state(thread, XNROOT))
 		return 0;
@@ -823,7 +826,7 @@ static inline int handle_exception(struct ipipe_trap_data *d)
 #endif
 
 	if (xnarch_fault_fpu_p(d)) {
-#ifdef CONFIG_XENO_ARCH_FPU
+#ifdef xxxCONFIG_XENO_ARCH_FPU
 		spl_t s;
 
 		/* FPU exception received in primary mode. */
@@ -881,6 +884,14 @@ static inline int handle_exception(struct ipipe_trap_data *d)
 	return 0;
 }
 
+void handle_oob_mayday(struct pt_regs *regs)
+{
+	XENO_BUG_ON(COBALT, !xnthread_test_state(xnthread_current(), XNUSER));
+
+	xnthread_relax(0, 0);
+}
+
+#if 0
 static int handle_mayday_event(struct pt_regs *regs)
 {
 	XENO_BUG_ON(COBALT, !xnthread_test_state(xnthread_current(), XNUSER));
@@ -912,6 +923,17 @@ int ipipe_trap_hook(struct ipipe_trap_data *data)
 	 */
 	return KEVENT_PROPAGATE;
 }
+#endif
+
+void handle_oob_trap_entry(unsigned int trapnr, struct pt_regs *regs)
+{
+	struct xnarch_fault_data data = {
+		.exception = trapnr,
+		.regs = regs,
+	};
+
+	handle_exception(&data);
+}
 
 /*
  * Legacy idle hook, unconditionally allow entering the idle state.
@@ -923,7 +945,8 @@ bool ipipe_enter_idle_hook(void)
 
 #ifdef CONFIG_SMP
 
-static int handle_setaffinity_event(struct ipipe_cpu_migration_data *d)
+//static int handle_setaffinity_event(struct ipipe_cpu_migration_data *d)
+static int handle_setaffinity_event(struct dovetail_migration_data *d)
 {
 	struct task_struct *p = d->task;
 	struct xnthread *thread;
@@ -1190,6 +1213,7 @@ static inline void signal_yield(void)
 	xnlock_put_irqrestore(&nklock, s);
 }
 
+#if 0
 static int handle_schedule_event(struct task_struct *next_task)
 {
 	struct task_struct *prev_task;
@@ -1266,6 +1290,7 @@ no_ptrace:
 out:
 	return KEVENT_PROPAGATE;
 }
+#endif
 
 static int handle_sigwake_event(struct task_struct *p)
 {
@@ -1308,8 +1333,8 @@ static int handle_sigwake_event(struct task_struct *p)
 	 * sure we keep the additional state flags unmodified so that
 	 * we don't break any undergoing ptrace.
 	 */
-	if (p->state & (TASK_INTERRUPTIBLE|TASK_UNINTERRUPTIBLE))
-		cobalt_set_task_state(p, p->state | TASK_NOWAKEUP);
+//	if (p->state & (TASK_INTERRUPTIBLE|TASK_UNINTERRUPTIBLE))
+//		cobalt_set_task_state(p, p->state | TASK_NOWAKEUP);
 
 	/*
 	 * Allow a thread stopped for debugging to resume briefly in order to
@@ -1358,7 +1383,8 @@ static int handle_cleanup_event(struct mm_struct *mm)
 		running_exec = curr && (current->flags & PF_EXITING) == 0;
 		if (running_exec) {
 			__handle_taskexit_event(current);
-			ipipe_disable_notifier(current);
+			//ipipe_disable_notifier(current);
+			dovetail_stop_altsched();
 		}
 		if (atomic_dec_and_test(&sys_ppd->refcnt))
 			remove_process(process);
@@ -1387,14 +1413,15 @@ static inline int handle_clockfreq_event(unsigned int *p)
 	return KEVENT_PROPAGATE;
 }
 
-#ifdef IPIPE_KEVT_USERINTRET
+//#ifdef IPIPE_KEVT_USERINTRET
 static int handle_user_return(struct task_struct *task)
 {
 	struct xnthread *thread;
 	spl_t s;
 	int err;
 
-	ipipe_disable_user_intret_notifier();
+	//ipipe_disable_user_intret_notifier();
+	dovetail_clear_ucall();
 
 	thread = xnthread_from_task(task);
 	if (thread == NULL)
@@ -1421,7 +1448,7 @@ static int handle_user_return(struct task_struct *task)
 
 	return KEVENT_PROPAGATE;
 }
-#endif /* IPIPE_KEVT_USERINTRET */
+//#endif /* IPIPE_KEVT_USERINTRET */
 
 #ifdef IPIPE_KEVT_PTRESUME
 int handle_ptrace_resume(struct ipipe_ptrace_resume_data *resume)
@@ -1447,6 +1474,7 @@ int handle_ptrace_resume(struct ipipe_ptrace_resume_data *resume)
 }
 #endif /* IPIPE_KEVT_PTRESUME */
 
+#if 0
 int ipipe_kevent_hook(int kevent, void *data)
 {
 	int ret;
@@ -1490,6 +1518,32 @@ int ipipe_kevent_hook(int kevent, void *data)
 	}
 
 	return ret;
+}
+#endif
+
+void handle_inband_event(enum inband_event_type event, void *data)
+{
+	switch (event) {
+	case INBAND_TASK_SIGNAL:
+		handle_sigwake_event(data);
+		break;
+	case INBAND_TASK_MIGRATION:
+		handle_setaffinity_event(data);
+		break;
+	case INBAND_TASK_EXIT:
+		handle_taskexit_event(current);
+		break;
+	case INBAND_TASK_RETUSER:
+		handle_user_return(data);
+		break;
+	case INBAND_TASK_PTSTEP:
+	case INBAND_TASK_PTSTOP:
+	case INBAND_TASK_PTCONT:
+		break;
+	case INBAND_PROCESS_CLEANUP:
+		handle_cleanup_event(data);
+		break;
+	}
 }
 
 static int attach_process(struct cobalt_process *process)
@@ -1689,8 +1743,9 @@ __init int cobalt_init(void)
 		goto fail_siginit;
 
 	init_hostrt();
-	ipipe_set_hooks(ipipe_root_domain, IPIPE_SYSCALL|IPIPE_KEVENT);
-	ipipe_set_hooks(&xnsched_realtime_domain, IPIPE_SYSCALL|IPIPE_TRAP);
+	//ipipe_set_hooks(ipipe_root_domain, IPIPE_SYSCALL|IPIPE_KEVENT);
+	//ipipe_set_hooks(&xnsched_realtime_domain, IPIPE_SYSCALL|IPIPE_TRAP);
+	dovetail_start();
 
 	if (gid_arg != -1)
 		printk(XENO_INFO "allowing access to group %d\n", gid_arg);

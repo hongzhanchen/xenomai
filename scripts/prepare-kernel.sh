@@ -309,48 +309,48 @@ if test x$verbose = x1; then
 echo "Preparing kernel $linux_version$linux_EXTRAVERSION in $linux_tree..."
 fi
 
-if test -r $linux_tree/include/linux/ipipe.h; then
-    if test x$verbose = x1; then
-       echo "I-pipe found - bypassing patch."
-    fi
-else
-   if test x$verbose = x1; then
-      echo "$me: no I-pipe support found." >&2
-   fi
-   while test x$ipipe_patch = x; do
-      echo -n "I-pipe patch: "
-      read ipipe_patch
-      if test \! -r "$ipipe_patch" -o x$ipipe_patch = x; then
-         echo "$me: cannot read I-pipe patch from $ipipe_patch" >&2
-         ipipe_patch=
-      fi
-   done
-   patchdir=`dirname $ipipe_patch`; 
-   patchdir=`cd $patchdir && pwd`
-   ipipe_patch=$patchdir/`basename $ipipe_patch`
-   curdir=$PWD
-   cd $linux_tree && patch --dry-run -p1 -f < $ipipe_patch || { 
-        cd $curdir;
-        echo "$me: Unable to patch kernel $linux_version$linux_EXTRAVERSION with `basename $ipipe_patch`." >&2
-        exit 2;
-   }
-   patch -p1 -f -s < $ipipe_patch
-   cd $curdir
-fi
+# if test -r $linux_tree/include/linux/ipipe.h; then
+#     if test x$verbose = x1; then
+#        echo "I-pipe found - bypassing patch."
+#     fi
+# else
+#    if test x$verbose = x1; then
+#       echo "$me: no I-pipe support found." >&2
+#    fi
+#    while test x$ipipe_patch = x; do
+#       echo -n "I-pipe patch: "
+#       read ipipe_patch
+#       if test \! -r "$ipipe_patch" -o x$ipipe_patch = x; then
+#          echo "$me: cannot read I-pipe patch from $ipipe_patch" >&2
+#          ipipe_patch=
+#       fi
+#    done
+#    patchdir=`dirname $ipipe_patch`; 
+#    patchdir=`cd $patchdir && pwd`
+#    ipipe_patch=$patchdir/`basename $ipipe_patch`
+#    curdir=$PWD
+#    cd $linux_tree && patch --dry-run -p1 -f < $ipipe_patch || { 
+#         cd $curdir;
+#         echo "$me: Unable to patch kernel $linux_version$linux_EXTRAVERSION with `basename $ipipe_patch`." >&2
+#         exit 2;
+#    }
+#    patch -p1 -f -s < $ipipe_patch
+#    cd $curdir
+# fi
 
-if test \! -r $linux_tree/arch/$linux_arch/include/asm/ipipe.h; then
-   echo "$me: $linux_tree has no I-pipe support for $linux_arch" >&2
-   exit 2
-fi
+#if test \! -r $linux_tree/arch/$linux_arch/include/asm/ipipe.h; then
+#   echo "$me: $linux_tree has no I-pipe support for $linux_arch" >&2
+#   exit 2
+#fi
 
-ipipe_core=`grep '^#define.*IPIPE_CORE_RELEASE.*' $linux_tree/arch/$linux_arch/include/asm/ipipe.h 2>/dev/null|head -n1|sed -e 's,[^0-9]*\([0-9]*\)$,\1,'`
-if test "x$ipipe_core" = x; then
-    echo "$me: $linux_tree has no I-pipe support for $linux_arch" >&2
-    exit 2
-fi
-if test x$verbose = x1; then
-   echo "I-pipe core/$linux_arch #$ipipe_core installed."
-fi
+#ipipe_core=`grep '^#define.*IPIPE_CORE_RELEASE.*' $linux_tree/arch/$linux_arch/include/asm/ipipe.h 2>/dev/null|head -n1|sed -e 's,[^0-9]*\([0-9]*\)$,\1,'`
+#if test "x$ipipe_core" = x; then
+#    echo "$me: $linux_tree has no I-pipe support for $linux_arch" >&2
+#    exit 2
+#fi
+#if test x$verbose = x1; then
+#   echo "I-pipe core/$linux_arch #$ipipe_core installed."
+#fi
 
 patch_kernelversion_specific="y"
 
@@ -387,10 +387,10 @@ case $linux_VERSION.$linux_PATCHLEVEL in
 test "x$CONFIG_XENO_REVISION_LEVEL" = "x" && CONFIG_XENO_REVISION_LEVEL=0
 
     if ! grep -q CONFIG_XENOMAI $linux_tree/arch/$linux_arch/Makefile; then
-	p="KBUILD_CFLAGS += -Iarch/\$(SRCARCH)/xenomai/include -Iinclude/xenomai"
+	p="KBUILD_CFLAGS += -I\$(srctree)/arch/\$(SRCARCH)/xenomai/include -I\$(srctree)/include/xenomai"
 	(echo; echo $p) | patch_append arch/$linux_arch/Makefile
-	p="core-\$(CONFIG_XENOMAI)	+= arch/$linux_arch/xenomai/"
-	echo $p | patch_append arch/$linux_arch/Makefile
+	#p="core-\$(CONFIG_XENOMAI)	+= arch/$linux_arch/xenomai/"
+	#echo $p | patch_append arch/$linux_arch/Makefile
     fi
 
     patch_architecture_specific="n"
@@ -415,7 +415,8 @@ esac
 patch_kernelversion_specific="n"
 patch_architecture_specific="y"
 patch_link r m kernel/cobalt/arch/$linux_arch arch/$linux_arch/xenomai
-patch_link n n kernel/cobalt/include/ipipe arch/$linux_arch/include/ipipe
+#patch_link n n kernel/cobalt/include/ipipe arch/$linux_arch/include/ipipe
+patch_link n n kernel/cobalt/include/dovetail arch/$linux_arch/include/dovetail
 patch_architecture_specific="n"
 patch_link n m kernel/cobalt kernel/xenomai
 patch_link n cobalt-core.h kernel/cobalt/trace include/trace/events

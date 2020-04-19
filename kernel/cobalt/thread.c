@@ -245,7 +245,8 @@ void xnthread_init_shadow_tcb(struct xnthread *thread)
 	 * context. The kernel already took care of this issue for
 	 * userland tasks (e.g. setting up a clean backup area).
 	 */
-	__ipipe_share_current(0);
+#warning TODO
+	//__ipipe_share_current(0);
 
 	tcb->core.host_task = p;
 	tcb->core.tsp = &p->thread;
@@ -255,7 +256,8 @@ void xnthread_init_shadow_tcb(struct xnthread *thread)
 #ifdef CONFIG_XENO_ARCH_FPU
 	tcb->core.user_fpu_owner = p;
 #endif /* CONFIG_XENO_ARCH_FPU */
-	xnarch_init_shadow_tcb(thread);
+#warning TODO?
+	//xnarch_init_shadow_tcb(thread);
 
 	trace_cobalt_shadow_map(thread);
 }
@@ -269,7 +271,8 @@ void xnthread_init_root_tcb(struct xnthread *thread)
 	tcb->core.tsp = &tcb->core.ts;
 	tcb->core.mm = p->mm;
 	tcb->core.tip = NULL;
-	xnarch_init_root_tcb(thread);
+#warning TODO?
+	//xnarch_init_root_tcb(thread);
 }
 
 void xnthread_deregister(struct xnthread *thread)
@@ -438,7 +441,8 @@ void xnthread_switch_fpu(struct xnsched *sched)
 	if (!xnthread_test_state(curr, XNFPU))
 		return;
 
-	xnarch_switch_fpu(sched->fpuholder, curr);
+#warning TODO: nothing to do? then general cleanup of FPU
+	//xnarch_switch_fpu(sched->fpuholder, curr);
 	sched->fpuholder = curr;
 }
 
@@ -1946,7 +1950,8 @@ int xnthread_harden(void)
 
 	xnthread_clear_sync_window(thread, XNRELAX);
 
-	ret = __ipipe_migrate_head();
+#warning TODO
+	ret = 0;//__ipipe_migrate_head();
 	if (ret) {
 		xnthread_test_cancel();
 		xnthread_set_sync_window(thread, XNRELAX);
@@ -1980,6 +1985,7 @@ int xnthread_harden(void)
 }
 EXPORT_SYMBOL_GPL(xnthread_harden);
 
+#if 0
 struct lostage_wakeup {
 	struct ipipe_work_header work; /* Must be first. */
 	struct task_struct *task;
@@ -1997,10 +2003,12 @@ static void lostage_task_wakeup(struct ipipe_work_header *work)
 
 	wake_up_process(p);
 }
+#endif
 
 static void post_wakeup(struct task_struct *p)
 {
-	struct lostage_wakeup wakework = {
+#warning TODO
+/*	struct lostage_wakeup wakework = {
 		.work = {
 			.size = sizeof(wakework),
 			.handler = lostage_task_wakeup,
@@ -2010,7 +2018,7 @@ static void post_wakeup(struct task_struct *p)
 
 	trace_cobalt_lostage_request("wakeup", wakework.task);
 
-	ipipe_post_work_root(&wakework, work);
+	ipipe_post_work_root(&wakework, work);*/
 }
 
 void __xnthread_propagate_schedparam(struct xnthread *curr)
@@ -2118,7 +2126,8 @@ void xnthread_relax(int notify, int reason)
 		suspension |= XNDBGSTOP;
 	}
 #endif
-	set_current_state(p->state & ~TASK_NOWAKEUP);
+#warning TODO
+	//set_current_state(p->state & ~TASK_NOWAKEUP);
 	xnthread_run_handler_stack(thread, relax_thread);
 	xnthread_suspend(thread, suspension, XN_INFINITE, XN_RELATIVE, NULL);
 	splnone();
@@ -2127,11 +2136,12 @@ void xnthread_relax(int notify, int reason)
 	 * Basic sanity check after an expected transition to secondary
 	 * mode.
 	 */
-	XENO_WARN(COBALT, !ipipe_root_p,
+	XENO_WARN(COBALT, running_oob(),
 		  "xnthread_relax() failed for thread %s[%d]",
 		  thread->name, xnthread_host_pid(thread));
 
-	__ipipe_reenter_root();
+#warning TODO: nothing to be done?
+	//__ipipe_reenter_root();
 
 	/* Account for secondary mode switch. */
 	xnstat_counter_inc(&thread->stat.ssw);
@@ -2183,12 +2193,14 @@ void xnthread_relax(int notify, int reason)
 	 */
 	xnthread_clear_localinfo(thread, XNSYSRST);
 
-	ipipe_clear_thread_flag(TIP_MAYDAY);
+#warning TODO: nothing to do here?
+//	ipipe_clear_thread_flag(TIP_MAYDAY);
 
 	trace_cobalt_shadow_relaxed(thread);
 }
 EXPORT_SYMBOL_GPL(xnthread_relax);
 
+#if 0
 struct lostage_signal {
 	struct ipipe_work_header work; /* Must be first. */
 	struct task_struct *task;
@@ -2234,6 +2246,7 @@ static void lostage_task_signal(struct ipipe_work_header *work)
 	} else
 		send_sig(signo, p, 1);
 }
+#endif
 
 static int force_wakeup(struct xnthread *thread) /* nklock locked, irqs off */
 {
@@ -2341,7 +2354,7 @@ void __xnthread_kick(struct xnthread *thread) /* nklock locked, irqs off */
 	 */
 	if (thread != xnsched_current_thread() &&
 	    xnthread_test_state(thread, XNUSER))
-		ipipe_raise_mayday(p);
+		dovetail_send_mayday(p);
 }
 
 void xnthread_kick(struct xnthread *thread)
@@ -2396,7 +2409,8 @@ EXPORT_SYMBOL_GPL(xnthread_demote);
 
 void xnthread_signal(struct xnthread *thread, int sig, int arg)
 {
-	struct lostage_signal sigwork = {
+#warning TODO
+/*	struct lostage_signal sigwork = {
 		.work = {
 			.size = sizeof(sigwork),
 			.handler = lostage_task_signal,
@@ -2408,7 +2422,7 @@ void xnthread_signal(struct xnthread *thread, int sig, int arg)
 
 	trace_cobalt_lostage_request("signal", sigwork.task);
 
-	ipipe_post_work_root(&sigwork, work);
+	ipipe_post_work_root(&sigwork, work);*/
 }
 EXPORT_SYMBOL_GPL(xnthread_signal);
 
@@ -2442,6 +2456,7 @@ void xnthread_pin_initial(struct xnthread *thread)
 	xnlock_put_irqrestore(&nklock, s);
 }
 
+#if 0
 struct parent_wakeup_request {
 	struct ipipe_work_header work; /* Must be first. */
 	struct completion *done;
@@ -2454,27 +2469,29 @@ static void do_parent_wakeup(struct ipipe_work_header *work)
 	rq = container_of(work, struct parent_wakeup_request, work);
 	complete(rq->done);
 }
+#endif
 
 static inline void wakeup_parent(struct completion *done)
 {
-	struct parent_wakeup_request wakework = {
+#warning TODO
+/*	struct parent_wakeup_request wakework = {
 		.work = {
 			.size = sizeof(wakework),
 			.handler = do_parent_wakeup,
 		},
 		.done = done,
-	};
+	};*/
 
 	trace_cobalt_lostage_request("wakeup", current);
 
-	ipipe_post_work_root(&wakework, work);
+	//ipipe_post_work_root(&wakework, work);
 }
 
 static inline void init_kthread_info(struct xnthread *thread)
 {
-	struct ipipe_threadinfo *p;
+	struct oob_thread_state *p;
 
-	p = ipipe_current_threadinfo();
+	p = dovetail_current_state();
 	p->thread = thread;
 	p->process = NULL;
 }
@@ -2523,7 +2540,7 @@ static inline void init_kthread_info(struct xnthread *thread)
  */
 int xnthread_map(struct xnthread *thread, struct completion *done)
 {
-	struct task_struct *p = current;
+//	struct task_struct *p = current;
 	int ret;
 	spl_t s;
 
@@ -2542,7 +2559,8 @@ int xnthread_map(struct xnthread *thread, struct completion *done)
 	xnthread_set_state(thread, XNMAPPED);
 	xndebug_shadow_init(thread);
 	xnthread_run_handler(thread, map_thread);
-	ipipe_enable_notifier(p);
+#warning TODO
+	//ipipe_enable_notifier(p);
 
 	/*
 	 * CAUTION: Soon after xnthread_init() has returned,
@@ -2594,7 +2612,7 @@ void xnthread_call_mayday(struct xnthread *thread, int reason)
 	XENO_BUG_ON(COBALT, !xnthread_test_state(thread, XNUSER));
 	xnthread_set_info(thread, XNKICKED);
 	xnthread_signal(thread, SIGDEBUG, reason);
-	ipipe_raise_mayday(p);
+	dovetail_send_mayday(p);
 }
 EXPORT_SYMBOL_GPL(xnthread_call_mayday);
 

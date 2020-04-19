@@ -30,7 +30,7 @@ static inline void xnarch_get_latencies(struct xnclock_gravity *p)
 {
 	unsigned long sched_latency;
 
-#if CONFIG_XENO_OPT_TIMING_SCHEDLAT != 0
+#if CONFIG_XENO_OPT_TIMING_SCHEDLAT != 0 || 1
 	sched_latency = CONFIG_XENO_OPT_TIMING_SCHEDLAT;
 #else /* !CONFIG_XENO_OPT_TIMING_SCHEDLAT */
 

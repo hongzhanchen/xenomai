@@ -124,14 +124,15 @@ int xnregistry_init(void)
 		return ret;
 	}
 
-	proc_apc =
+#warning TODO: use irq_work
+/*	proc_apc =
 	    xnapc_alloc("registry_export", &registry_proc_schedule, NULL);
 
 	if (proc_apc < 0) {
 		xnvfile_destroy_regular(&usage_vfile);
 		xnvfile_destroy_dir(&registry_vfroot);
 		return proc_apc;
-	}
+	}*/
 #endif /* CONFIG_XENO_OPT_VFILE */
 
 	next_object_stamp = 0;
@@ -153,7 +154,7 @@ int xnregistry_init(void)
 #ifdef CONFIG_XENO_OPT_VFILE
 		xnvfile_destroy_regular(&usage_vfile);
 		xnvfile_destroy_dir(&registry_vfroot);
-		xnapc_free(proc_apc);
+		//xnapc_free(proc_apc);
 #endif /* CONFIG_XENO_OPT_VFILE */
 		return -ENOMEM;
 	}
@@ -199,7 +200,7 @@ void xnregistry_cleanup(void)
 	xnsynch_destroy(&register_synch);
 
 #ifdef CONFIG_XENO_OPT_VFILE
-	xnapc_free(proc_apc);
+	//xnapc_free(proc_apc);
 	flush_scheduled_work();
 	xnvfile_destroy_regular(&usage_vfile);
 	xnvfile_destroy_dir(&registry_vfroot);
@@ -469,7 +470,8 @@ static inline void registry_export_pnode(struct xnobject *object,
 	object->pnode = pnode;
 	list_del(&object->link);
 	list_add_tail(&object->link, &proc_object_list);
-	__xnapc_schedule(proc_apc);
+#warning TODO: irq_work
+	//__xnapc_schedule(proc_apc);
 }
 
 static inline void registry_unexport_pnode(struct xnobject *object)
@@ -485,7 +487,8 @@ static inline void registry_unexport_pnode(struct xnobject *object)
 			object->pnode->ops->touch(object);
 		list_del(&object->link);
 		list_add_tail(&object->link, &proc_object_list);
-		__xnapc_schedule(proc_apc);
+#warning TODO: irq_work
+		//__xnapc_schedule(proc_apc);
 	} else {
 		/*
 		 * Unexporting before the lower stage has had a chance
@@ -852,7 +855,7 @@ int xnregistry_remove(xnhandle_t handle)
 			 */
 			if (object->pnode) {
 				xnlock_put_irqrestore(&nklock, s);
-				if (ipipe_root_p)
+				if (running_inband())
 					flush_work(&registry_proc_work);
 				return 0;
 			}

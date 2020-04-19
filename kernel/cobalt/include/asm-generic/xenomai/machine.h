@@ -19,7 +19,7 @@
 #ifndef _COBALT_ASM_GENERIC_MACHINE_H
 #define _COBALT_ASM_GENERIC_MACHINE_H
 
-#include <linux/ipipe.h>
+//#include <linux/ipipe.h>
 #include <linux/percpu.h>
 #include <asm/byteorder.h>
 #include <asm/xenomai/wrappers.h>
@@ -38,16 +38,16 @@ struct cobalt_machine {
 
 extern struct cobalt_machine cobalt_machine;
 
-struct cobalt_machine_cpudata {
+/*struct cobalt_machine_cpudata {
 	unsigned long apc_pending;
 	unsigned long apc_shots[BITS_PER_LONG];
 	unsigned int faults[IPIPE_NR_FAULTS];
 };
 
-DECLARE_PER_CPU(struct cobalt_machine_cpudata, cobalt_machine_cpudata);
+DECLARE_PER_CPU(struct cobalt_machine_cpudata, cobalt_machine_cpudata);*/
 
 struct cobalt_pipeline {
-	struct ipipe_domain domain;
+//	struct ipipe_domain domain;
 	unsigned long timer_freq;
 	unsigned long clock_freq;
 	unsigned int apc_virq;

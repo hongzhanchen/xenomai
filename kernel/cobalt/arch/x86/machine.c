@@ -17,7 +17,7 @@
  *   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
  *   02111-1307, USA.
  */
-#include <linux/ipipe_tickdev.h>
+//#include <linux/ipipe_tickdev.h>
 #include <cobalt/kernel/arith.h>
 #include <asm/xenomai/syscall.h>
 #include <asm/xenomai/machine.h>
@@ -44,6 +44,7 @@ long strncpy_from_user_nocheck(char *dst, const char __user *src, long count)
 }
 EXPORT_SYMBOL_GPL(strncpy_from_user_nocheck);
 
+#if 0
 static unsigned long mach_x86_calibrate(void)
 {
 	unsigned long delay = (cobalt_pipeline.timer_freq + HZ / 2) / HZ;
@@ -77,6 +78,7 @@ static unsigned long mach_x86_calibrate(void)
 	 */
 	return xnarch_ulldiv(dt, i + 5, NULL);
 }
+#endif
 
 static int mach_x86_init(void)
 {
@@ -128,7 +130,7 @@ struct cobalt_machine cobalt_machine = {
 	.init = mach_x86_init,
 	.late_init = NULL,
 	.cleanup = mach_x86_cleanup,
-	.calibrate = mach_x86_calibrate,
+//	.calibrate = mach_x86_calibrate,
 	.prefault = NULL,
 	.fault_labels = fault_labels,
 };

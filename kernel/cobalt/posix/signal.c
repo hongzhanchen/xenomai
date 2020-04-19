@@ -232,12 +232,14 @@ static int signal_put_siginfo(void __user *u_si, const struct siginfo *si,
 		ret |= __xn_put_user(overrun, &u_p->si_overrun);
 		break;
 	case SI_QUEUE:
+		/* fall through */
 	case SI_MESGQ:
 		ret |= __xn_put_user(si->si_ptr, &u_p->si_ptr);
-		/* falldown wanted. */
+		/* fall through */
 	case SI_USER:
 		ret |= __xn_put_user(si->si_pid, &u_p->si_pid);
 		ret |= __xn_put_user(si->si_uid, &u_p->si_uid);
+		break;
 	}
 
 	return ret;
@@ -407,7 +409,7 @@ COBALT_SYSCALL(sigwait, primary,
 }
 
 int __cobalt_sigtimedwait(sigset_t *set,
-			  const struct timespec *timeout,
+			  const struct timespec64 *timeout,
 			  void __user *u_si,
 			  bool compat)
 {
@@ -426,9 +428,9 @@ int __cobalt_sigtimedwait(sigset_t *set,
 COBALT_SYSCALL(sigtimedwait, nonrestartable,
 	       (const sigset_t __user *u_set,
 		struct siginfo __user *u_si,
-		const struct timespec __user *u_timeout))
+		const struct timespec64 __user *u_timeout))
 {
-	struct timespec timeout;
+	struct timespec64 timeout;
 	sigset_t set;
 
 	if (cobalt_copy_from_user(&set, u_set, sizeof(set)))

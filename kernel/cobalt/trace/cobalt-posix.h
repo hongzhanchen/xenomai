@@ -30,7 +30,7 @@
 #include <xenomai/posix/event.h>
 
 #define __timespec_fields(__name)				\
-	__field(__kernel_time_t, tv_sec_##__name)		\
+	__field(time64_t, tv_sec_##__name)			\
 	__field(long, tv_nsec_##__name)
 
 #define __assign_timespec(__to, __from)				\
@@ -729,7 +729,7 @@ TRACE_EVENT(cobalt_psem_unlink,
 );
 
 DECLARE_EVENT_CLASS(cobalt_clock_timespec,
-	TP_PROTO(clockid_t clk_id, const struct timespec *val),
+	TP_PROTO(clockid_t clk_id, const struct timespec64 *val),
 	TP_ARGS(clk_id, val),
 
 	TP_STRUCT__entry(
@@ -742,34 +742,34 @@ DECLARE_EVENT_CLASS(cobalt_clock_timespec,
 		__assign_timespec(val, val);
 	),
 
-	TP_printk("clock_id=%d timeval=(%ld.%09ld)",
+	TP_printk("clock_id=%d timeval=(%lld.%09ld)",
 		  __entry->clk_id,
 		  __timespec_args(val)
 	)
 );
 
 DEFINE_EVENT(cobalt_clock_timespec, cobalt_clock_getres,
-	TP_PROTO(clockid_t clk_id, const struct timespec *res),
+	TP_PROTO(clockid_t clk_id, const struct timespec64 *res),
 	TP_ARGS(clk_id, res)
 );
 
 DEFINE_EVENT(cobalt_clock_timespec, cobalt_clock_gettime,
-	TP_PROTO(clockid_t clk_id, const struct timespec *time),
+	TP_PROTO(clockid_t clk_id, const struct timespec64 *time),
 	TP_ARGS(clk_id, time)
 );
 
 DEFINE_EVENT(cobalt_clock_timespec, cobalt_clock_settime,
-	TP_PROTO(clockid_t clk_id, const struct timespec *time),
+	TP_PROTO(clockid_t clk_id, const struct timespec64 *time),
 	TP_ARGS(clk_id, time)
 );
 
 TRACE_EVENT(cobalt_clock_adjtime,
-	TP_PROTO(clockid_t clk_id, struct timex *tx),
+	TP_PROTO(clockid_t clk_id, struct __kernel_timex *tx),
 	TP_ARGS(clk_id, tx),
 
 	TP_STRUCT__entry(
 		__field(clockid_t, clk_id)
-		__field(struct timex *, tx)
+		__field(struct __kernel_timex *, tx)
 	),
 
 	TP_fast_assign(
@@ -788,7 +788,7 @@ TRACE_EVENT(cobalt_clock_adjtime,
 		      {TIMER_ABSTIME, "TIMER_ABSTIME"})
 
 TRACE_EVENT(cobalt_clock_nanosleep,
-	TP_PROTO(clockid_t clk_id, int flags, const struct timespec *time),
+	TP_PROTO(clockid_t clk_id, int flags, const struct timespec64 *time),
 	TP_ARGS(clk_id, flags, time),
 
 	TP_STRUCT__entry(
@@ -803,7 +803,7 @@ TRACE_EVENT(cobalt_clock_nanosleep,
 		__assign_timespec(time, time);
 	),
 
-	TP_printk("clock_id=%d flags=%#x(%s) rqt=(%ld.%09ld)",
+	TP_printk("clock_id=%d flags=%#x(%s) rqt=(%lld.%09ld)",
 		  __entry->clk_id,
 		  __entry->flags, cobalt_print_timer_flags(__entry->flags),
 		  __timespec_args(time)
@@ -875,7 +875,7 @@ TRACE_EVENT(cobalt_cond_destroy,
 TRACE_EVENT(cobalt_cond_timedwait,
 	TP_PROTO(const struct cobalt_cond_shadow __user *u_cnd,
 		 const struct cobalt_mutex_shadow __user *u_mx,
-		 const struct timespec *timeout),
+		 const struct timespec64 *timeout),
 	TP_ARGS(u_cnd, u_mx, timeout),
 	TP_STRUCT__entry(
 		__field(const struct cobalt_cond_shadow __user *, u_cnd)
@@ -887,7 +887,7 @@ TRACE_EVENT(cobalt_cond_timedwait,
 		__entry->u_mx = u_mx;
 		__assign_timespec(timeout, timeout);
 	),
-	TP_printk("cond=%p, mutex=%p, timeout=(%ld.%09ld)",
+	TP_printk("cond=%p, mutex=%p, timeout=(%lld.%09ld)",
 		  __entry->u_cnd, __entry->u_mx, __timespec_args(timeout))
 );
 
@@ -1001,7 +1001,7 @@ TRACE_EVENT(cobalt_mq_send,
 
 TRACE_EVENT(cobalt_mq_timedreceive,
 	TP_PROTO(mqd_t mqd, const void __user *u_buf, size_t len,
-		 const struct timespec *timeout),
+		 const struct timespec64 *timeout),
 	TP_ARGS(mqd, u_buf, len, timeout),
 	TP_STRUCT__entry(
 		__field(mqd_t, mqd)
@@ -1015,7 +1015,7 @@ TRACE_EVENT(cobalt_mq_timedreceive,
 		__entry->len = len;
 		__assign_timespec(timeout, timeout);
 	),
-	TP_printk("mqd=%d buf=%p len=%zu timeout=(%ld.%09ld)",
+	TP_printk("mqd=%d buf=%p len=%zu timeout=(%lld.%09ld)",
 		  __entry->mqd, __entry->u_buf, __entry->len,
 		  __timespec_args(timeout))
 );
@@ -1105,7 +1105,7 @@ TRACE_EVENT(cobalt_event_init,
 TRACE_EVENT(cobalt_event_timedwait,
 	TP_PROTO(const struct cobalt_event_shadow __user *u_event,
 		 unsigned long bits, int mode,
-		 const struct timespec *timeout),
+		 const struct timespec64 *timeout),
 	TP_ARGS(u_event, bits, mode, timeout),
 	TP_STRUCT__entry(
 		__field(const struct cobalt_event_shadow __user *, u_event)
@@ -1119,7 +1119,7 @@ TRACE_EVENT(cobalt_event_timedwait,
 		__entry->mode = mode;
 		__assign_timespec(timeout, timeout);
 	),
-	TP_printk("event=%p bits=%#lx mode=%#x(%s) timeout=(%ld.%09ld)",
+	TP_printk("event=%p bits=%#lx mode=%#x(%s) timeout=(%lld.%09ld)",
 		  __entry->u_event, __entry->bits, __entry->mode,
 		  cobalt_print_evmode(__entry->mode),
 		  __timespec_args(timeout))

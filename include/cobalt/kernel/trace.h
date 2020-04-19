@@ -20,35 +20,35 @@
 #define _COBALT_KERNEL_TRACE_H
 
 #include <linux/types.h>
-#include <linux/ipipe_trace.h>
+//#include <linux/ipipe_trace.h>
 #include <cobalt/uapi/kernel/trace.h>
 
 static inline int xntrace_max_begin(unsigned long v)
 {
-	ipipe_trace_begin(v);
+	//ipipe_trace_begin(v);
 	return 0;
 }
 
 static inline int xntrace_max_end(unsigned long v)
 {
-	ipipe_trace_end(v);
+	//ipipe_trace_end(v);
 	return 0;
 }
 
 static inline int xntrace_max_reset(void)
 {
-	ipipe_trace_max_reset();
+	//ipipe_trace_max_reset();
 	return 0;
 }
 
 static inline int xntrace_user_start(void)
 {
-	return ipipe_trace_frozen_reset();
+	return /*ipipe_trace_frozen_reset()*/ 0;
 }
 
 static inline int xntrace_user_stop(unsigned long v)
 {
-	ipipe_trace_freeze(v);
+	//ipipe_trace_freeze(v);
 	return 0;
 }
 
@@ -56,49 +56,49 @@ static inline int xntrace_user_freeze(unsigned long v, int once)
 {
 	int ret = 0;
 
-	if (!once)
+/*	if (!once)
 		ret = ipipe_trace_frozen_reset();
 
-	ipipe_trace_freeze(v);
+	ipipe_trace_freeze(v);*/
 
 	return ret;
 }
 
 static inline int xntrace_special(unsigned char id, unsigned long v)
 {
-	ipipe_trace_special(id, v);
+//	ipipe_trace_special(id, v);
 	return 0;
 }
 
 static inline int xntrace_special_u64(unsigned char id,
 				      unsigned long long v)
 {
-	ipipe_trace_special(id, (unsigned long)(v >> 32));
-	ipipe_trace_special(id, (unsigned long)(v & 0xFFFFFFFF));
+//	ipipe_trace_special(id, (unsigned long)(v >> 32));
+//	ipipe_trace_special(id, (unsigned long)(v & 0xFFFFFFFF));
 	return 0;
 }
 
 static inline int xntrace_pid(pid_t pid, short prio)
 {
-	ipipe_trace_pid(pid, prio);
+//	ipipe_trace_pid(pid, prio);
 	return 0;
 }
 
 static inline int xntrace_tick(unsigned long delay_ticks)
 {
-	ipipe_trace_event(0, delay_ticks);
+//	ipipe_trace_event(0, delay_ticks);
 	return 0;
 }
 
 static inline int xntrace_panic_freeze(void)
 {
-	ipipe_trace_panic_freeze();
+//	ipipe_trace_panic_freeze();
 	return 0;
 }
 
 static inline int xntrace_panic_dump(void)
 {
-	ipipe_trace_panic_dump();
+//	ipipe_trace_panic_dump();
 	return 0;
 }
 

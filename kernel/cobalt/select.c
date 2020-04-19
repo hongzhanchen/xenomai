@@ -399,7 +399,8 @@ void xnselector_destroy(struct xnselector *selector)
 
 	xnlock_get_irqsave(&nklock, s);
 	list_add_tail(&selector->destroy_link, &selector_list);
-	__xnapc_schedule(deletion_apc);
+#warning TODO: irq_work
+	//__xnapc_schedule(deletion_apc);
 	xnlock_put_irqrestore(&nklock, s);
 }
 EXPORT_SYMBOL_GPL(xnselector_destroy);
@@ -443,17 +444,18 @@ out:
 
 int xnselect_mount(void)
 {
-	deletion_apc = xnapc_alloc("selector_list_destroy",
+#warning TODO: use irq_work
+	/*deletion_apc = xnapc_alloc("selector_list_destroy",
 				   xnselector_destroy_loop, NULL);
 	if (deletion_apc < 0)
-		return deletion_apc;
+		return deletion_apc;*/
 
 	return 0;
 }
 
 int xnselect_umount(void)
 {
-	xnapc_free(deletion_apc);
+	//xnapc_free(deletion_apc);
 	return 0;
 }
 

@@ -929,7 +929,7 @@ const char *cobalt_trace_parse_sched_params(struct trace_seq *p, int policy,
 		break;
 	case SCHED_SPORADIC:
 		trace_seq_printf(p, "priority=%d, low_priority=%d, "
-				 "budget=(%ld.%09ld), period=(%ld.%09ld), "
+				 "budget=(%lld.%09ld), period=(%lld.%09ld), "
 				 "maxrepl=%d",
 				 params->sched_priority,
 				 params->sched_ss_low_priority,

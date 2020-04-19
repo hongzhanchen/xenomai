@@ -18,7 +18,7 @@
  */
 #include <linux/percpu.h>
 #include <linux/errno.h>
-#include <linux/ipipe_tickdev.h>
+//#include <linux/ipipe_tickdev.h>
 #include <cobalt/kernel/sched.h>
 #include <cobalt/kernel/timer.h>
 #include <cobalt/kernel/clock.h>
@@ -222,13 +222,21 @@ void xnclock_core_local_shot(struct xnsched *sched)
 
 	xntrace_tick((unsigned)delay);
 
+#ifdef CONFIG_IPIPE
 	ipipe_timer_set(delay);
+#else
+#warning TODO
+#endif
 }
 
 #ifdef CONFIG_SMP
 void xnclock_core_remote_shot(struct xnsched *sched)
 {
+#ifdef CONFIG_IPIPE
 	ipipe_send_ipi(IPIPE_HRTIMER_IPI, *cpumask_of(xnsched_cpu(sched)));
+#else
+#warning TODO
+#endif
 }
 #endif
 
@@ -513,7 +521,7 @@ void print_core_clock_status(struct xnclock *clock,
 #endif /* CONFIG_XENO_OPT_WATCHDOG */
 
 	xnvfile_printf(it, "%8s: timer=%s, clock=%s\n",
-		       "devices", ipipe_timer_name(), ipipe_clock_name());
+		       "devices", /*ipipe_timer_name()*/"?", /*ipipe_clock_name()*/"?");
 	xnvfile_printf(it, "%8s: %s\n", "watchdog", wd_status);
 	xnvfile_printf(it, "%8s: %Lu\n", "setup",
 		       xnclock_ticks_to_ns(&nkclock, nktimerlat));
@@ -890,7 +898,8 @@ void xnclock_cleanup(void)
 int __init xnclock_init(unsigned long long freq)
 {
 	xnclock_update_freq(freq);
-	nktimerlat = xnarch_timer_calibrate();
+#warning TODO
+	nktimerlat = 0; //xnarch_timer_calibrate();
 	xnclock_reset_gravity(&nkclock);
 	xnclock_register(&nkclock, &xnsched_realtime_cpus);
 

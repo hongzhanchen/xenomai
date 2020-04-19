@@ -19,8 +19,8 @@
  * 02111-1307, USA.
 */
 #include <linux/mutex.h>
-#include <linux/ipipe.h>
-#include <linux/ipipe_tickdev.h>
+/*#include <linux/ipipe.h>
+#include <linux/ipipe_tickdev.h>*/
 #include <cobalt/kernel/sched.h>
 #include <cobalt/kernel/intr.h>
 #include <cobalt/kernel/stat.h>
@@ -188,7 +188,8 @@ void xnintr_host_tick(struct xnsched *sched) /* Interrupts off. */
 {
 	sched->lflags &= ~XNHTICK;
 #ifdef XNARCH_HOST_TICK_IRQ
-	ipipe_post_irq_root(XNARCH_HOST_TICK_IRQ);
+	//ipipe_post_irq_root(XNARCH_HOST_TICK_IRQ);
+#warning TODO
 #endif
 }
 
@@ -204,14 +205,15 @@ void xnintr_core_clock_handler(void)
 
 	if (!xnsched_supported_cpu(cpu)) {
 #ifdef XNARCH_HOST_TICK_IRQ
-		ipipe_post_irq_root(XNARCH_HOST_TICK_IRQ);
+		//ipipe_post_irq_root(XNARCH_HOST_TICK_IRQ);
+#warning TODO
 #endif
 		return;
 	}
 
 	prev = switch_core_irqstats(sched);
 
-	trace_cobalt_clock_entry(per_cpu(ipipe_percpu.hrtimer_irq, cpu));
+//	trace_cobalt_clock_entry(per_cpu(ipipe_percpu.hrtimer_irq, cpu));
 
 	++sched->inesting;
 	sched->lflags |= XNINIRQ;
@@ -220,7 +222,7 @@ void xnintr_core_clock_handler(void)
 	xnclock_tick(&nkclock);
 	xnlock_put(&nklock);
 
-	trace_cobalt_clock_exit(per_cpu(ipipe_percpu.hrtimer_irq, cpu));
+//	trace_cobalt_clock_exit(per_cpu(ipipe_percpu.hrtimer_irq, cpu));
 	switch_from_irqstats(sched, prev);
 
 	if (--sched->inesting == 0) {
@@ -240,6 +242,8 @@ void xnintr_core_clock_handler(void)
 		xnintr_host_tick(sched);
 }
 
+#warning TODO
+#if 0
 struct irqdisable_work {
 	struct ipipe_work_header work; /* Must be first. */
 	int irq;
@@ -265,6 +269,7 @@ static void disable_irq_line(int irq)
 
 	ipipe_post_work_root(&diswork, work);
 }
+#endif
 
 /* Optional support for shared interrupts. */
 
@@ -558,21 +563,23 @@ struct xnintr_vector {
 #endif /* CONFIG_SMP || XENO_DEBUG(LOCKING) */
 } ____cacheline_aligned_in_smp;
 
-static struct xnintr_vector vectors[IPIPE_NR_IRQS];
+static struct xnintr_vector vectors[/*IPIPE_*/NR_IRQS];
 
-static inline bool cobalt_owns_irq(int irq)
+/*static inline bool cobalt_owns_irq(int irq)
 {
 	ipipe_irq_handler_t h;
 
 	h = __ipipe_irq_handler(&xnsched_realtime_domain, irq);
 
 	return h == xnintr_irq_handler;
-}
+}*/
 
 static inline struct xnintr *xnintr_vec_first(unsigned int irq)
 {
-	return cobalt_owns_irq(irq) ?
-		__ipipe_irq_cookie(&xnsched_realtime_domain, irq) : NULL;
+/*	return cobalt_owns_irq(irq) ?
+		__ipipe_irq_cookie(&xnsched_realtime_domain, irq) : NULL;*/
+#warning TODO
+	return NULL;
 }
 
 static inline struct xnintr *xnintr_vec_next(struct xnintr *prev)
@@ -582,9 +589,11 @@ static inline struct xnintr *xnintr_vec_next(struct xnintr *prev)
 
 static inline int xnintr_irq_attach(struct xnintr *intr)
 {
-	return ipipe_request_irq(&xnsched_realtime_domain,
+/*	return ipipe_request_irq(&xnsched_realtime_domain,
 				 intr->irq, xnintr_irq_handler, intr,
-				 (ipipe_irq_ackfn_t)intr->iack);
+				 (ipipe_irq_ackfn_t)intr->iack);*/
+#warning TODO
+	return -ENOSYS;
 }
 
 static inline void xnintr_irq_detach(struct xnintr *intr)
@@ -592,7 +601,8 @@ static inline void xnintr_irq_detach(struct xnintr *intr)
 	int irq = intr->irq;
 
 	xnlock_get(&vectors[irq].lock);
-	ipipe_free_irq(&xnsched_realtime_domain, irq);
+#warning TODO
+//	ipipe_free_irq(&xnsched_realtime_domain, irq);
 	xnlock_put(&vectors[irq].lock);
 
 	sync_stat_references(intr);
@@ -604,6 +614,8 @@ static inline void xnintr_irq_detach(struct xnintr *intr)
  * Low-level interrupt handler dispatching non-shared ISRs -- Called
  * with interrupts off.
  */
+#warning TODO
+#if 0
 static void xnintr_irq_handler(unsigned int irq, void *cookie)
 {
 	struct xnintr_vector __maybe_unused *vec = vectors + irq;
@@ -678,11 +690,12 @@ out:
 		xnsched_run();
 	}
 }
+#endif
 
 int __init xnintr_mount(void)
 {
 	int i;
-	for (i = 0; i < IPIPE_NR_IRQS; ++i)
+	for (i = 0; i < /*IPIPE_*/NR_IRQS; ++i)
 		xnlock_init(&vectors[i].lock);
 	return 0;
 }
@@ -771,7 +784,7 @@ int xnintr_init(struct xnintr *intr, const char *name,
 {
 	secondary_mode_only();
 
-	if (irq >= IPIPE_NR_IRQS)
+	if (irq >= /*IPIPE_*/NR_IRQS)
 		return -EINVAL;
 
 	intr->irq = irq;
@@ -854,7 +867,8 @@ int xnintr_attach(struct xnintr *intr, void *cookie)
 	clear_irqstats(intr);
 
 #ifdef CONFIG_SMP
-	ipipe_set_irq_affinity(intr->irq, xnsched_realtime_cpus);
+#warning TODO
+	//ipipe_set_irq_affinity(intr->irq, xnsched_realtime_cpus);
 #endif /* CONFIG_SMP */
 
 	raw_spin_lock(&intr->lock);
@@ -934,8 +948,9 @@ void xnintr_enable(struct xnintr *intr)
 	 * If disabled on entry, there is no way we could race with
 	 * disable_irq_line().
 	 */
-	if (test_and_clear_bit(XN_IRQSTAT_DISABLED, &intr->status))
-		ipipe_enable_irq(intr->irq);
+#warning TODO
+/*	if (test_and_clear_bit(XN_IRQSTAT_DISABLED, &intr->status))
+		ipipe_enable_irq(intr->irq);*/
 
 	raw_spin_unlock_irqrestore(&intr->lock, flags);
 }
@@ -968,8 +983,9 @@ void xnintr_disable(struct xnintr *intr)
 	 * and the descriptor status would still properly match the
 	 * line status in the end.
 	 */
-	if (!test_and_set_bit(XN_IRQSTAT_DISABLED, &intr->status))
-		ipipe_disable_irq(intr->irq);
+#warning TODO
+/*	if (!test_and_set_bit(XN_IRQSTAT_DISABLED, &intr->status))
+		ipipe_disable_irq(intr->irq);*/
 
 	raw_spin_unlock_irqrestore(&intr->lock, flags);
 }
@@ -996,7 +1012,8 @@ void xnintr_affinity(struct xnintr *intr, cpumask_t cpumask)
 {
 	secondary_mode_only();
 #ifdef CONFIG_SMP
-	ipipe_set_irq_affinity(intr->irq, cpumask);
+#warning TODO
+	//ipipe_set_irq_affinity(intr->irq, cpumask);
 #endif
 }
 EXPORT_SYMBOL_GPL(xnintr_affinity);
@@ -1005,9 +1022,10 @@ static inline int xnintr_is_timer_irq(int irq)
 {
 	int cpu;
 
-	for_each_realtime_cpu(cpu)
+#warning TODO
+/*	for_each_realtime_cpu(cpu)
 		if (irq == per_cpu(ipipe_percpu.hrtimer_irq, cpu))
-			return 1;
+			return 1;*/
 
 	return 0;
 }
@@ -1089,6 +1107,8 @@ int xnintr_query_next(int irq, struct xnintr_iterator *iterator,
 
 #include <cobalt/kernel/vfile.h>
 
+#warning TODO
+#if 0
 static inline int format_irq_proc(unsigned int irq,
 				  struct xnvfile_regular_iterator *it)
 {
@@ -1148,10 +1168,13 @@ static inline int format_irq_proc(unsigned int irq,
 
 	return 0;
 }
+#endif
 
 static int irq_vfile_show(struct xnvfile_regular_iterator *it,
 			  void *data)
 {
+#warning TODO
+#if 0
 	int cpu, irq;
 
 	/* FIXME: We assume the entire output fits in a single page. */
@@ -1177,6 +1200,7 @@ static int irq_vfile_show(struct xnvfile_regular_iterator *it,
 	}
 
 	xnvfile_putc(it, '\n');
+#endif
 
 	return 0;
 }

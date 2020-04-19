@@ -235,10 +235,11 @@ void xnsched_init_all(void)
 	}
 
 #ifdef CONFIG_SMP
-	ipipe_request_irq(&xnsched_realtime_domain,
+#warning TODO
+/*	ipipe_request_irq(&xnsched_realtime_domain,
 			  IPIPE_RESCHEDULE_IPI,
 			  (ipipe_irq_handler_t)__xnsched_run_handler,
-			  NULL, NULL);
+			  NULL, NULL);*/
 #endif
 }
 
@@ -261,7 +262,8 @@ void xnsched_destroy_all(void)
 	spl_t s;
 
 #ifdef CONFIG_SMP
-	ipipe_free_irq(&xnsched_realtime_domain, IPIPE_RESCHEDULE_IPI);
+#warning TODO
+//	ipipe_free_irq(&xnsched_realtime_domain, IPIPE_RESCHEDULE_IPI);
 #endif
 
 	xnlock_get_irqsave(&nklock, s);
@@ -848,8 +850,10 @@ static inline void switch_context(struct xnsched *sched,
 	sched->status |= XNINSW;
 	xnlock_clear_irqon(&nklock);
 #endif
-
-	xnarch_switch_to(prev, next);
+	//xnarch_switch_to(prev, next);
+#warning TODO: handle return value (inband_tail)?
+	dovetail_context_switch(&prev->altsched, &next->altsched,
+				xnthread_test_state(prev, XNROOT));
 }
 
 /**
@@ -909,7 +913,8 @@ static inline int test_resched(struct xnsched *sched)
 	/* Send resched IPI to remote CPU(s). */
 	if (unlikely(!cpumask_empty(&sched->resched))) {
 		smp_mb();
-		ipipe_send_ipi(IPIPE_RESCHEDULE_IPI, sched->resched);
+#warning TODO
+		//ipipe_send_ipi(IPIPE_RESCHEDULE_IPI, sched->resched);
 		cpumask_clear(&sched->resched);
 	}
 #endif
@@ -936,13 +941,15 @@ static inline void leave_root(struct xnthread *root)
 	struct xnarchtcb *rootcb = xnthread_archtcb(root);
 	struct task_struct *p = current;
 
-	ipipe_notify_root_preemption();
+#warning TODO
+	//ipipe_notify_root_preemption();
 	/* Remember the preempted Linux task pointer. */
 	rootcb->core.host_task = p;
 	rootcb->core.tsp = &p->thread;
-	rootcb->core.mm = rootcb->core.active_mm = ipipe_get_active_mm();
+	rootcb->core.mm = rootcb->core.active_mm = current->active_mm;//ipipe_get_active_mm();
 	rootcb->core.tip = task_thread_info(p);
-	xnarch_leave_root(root);
+#warning TODO: nothing to be done?
+	//xnarch_leave_root(root);
 
 #ifdef CONFIG_XENO_OPT_WATCHDOG
 	xntimer_start(&root->sched->wdtimer, get_watchdog_timeout(),
@@ -967,7 +974,7 @@ int ___xnsched_run(struct xnsched *sched)
 	int switched, shadow;
 	spl_t s;
 
-	XENO_WARN_ON_ONCE(COBALT, !hard_irqs_disabled() && ipipe_root_p);
+	XENO_WARN_ON_ONCE(COBALT, !hard_irqs_disabled() && running_inband());
 
 	if (xnarch_escalate())
 		return 0;
@@ -1039,7 +1046,7 @@ reschedule:
 	 * In such a case, we are running over the regular schedule()
 	 * tail code, so we have to skip our tail code.
 	 */
-	if (shadow && ipipe_root_p)
+	if (shadow && running_inband())
 		goto shadow_epilogue;
 
 	switched = 1;
@@ -1061,7 +1068,8 @@ out:
 	return switched;
 
 shadow_epilogue:
-	__ipipe_complete_domain_migration();
+#warning TODO: double-check if there is no equivalent
+	//__ipipe_complete_domain_migration();
 
 	XENO_BUG_ON(COBALT, xnthread_current() == NULL);
 

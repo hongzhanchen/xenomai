@@ -94,13 +94,13 @@ extern struct cobalt_resources cobalt_global_resources;
 
 static inline struct cobalt_process *cobalt_current_process(void)
 {
-	return ipipe_current_threadinfo()->process;
+	return dovetail_current_state()->process;
 }
 
 static inline struct cobalt_process *
 cobalt_set_process(struct cobalt_process *process)
 {
-	struct ipipe_threadinfo *p = ipipe_current_threadinfo();
+	struct oob_thread_state *p = dovetail_current_state();
 	struct cobalt_process *old;
 
 	old = p->process;

@@ -17,8 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
  * 02111-1307, USA.
  */
-#include <linux/ipipe.h>
-#include <linux/ipipe_tickdev.h>
+//#include <linux/ipipe.h>
+//#include <linux/ipipe_tickdev.h>
 #include <linux/sched.h>
 #include <cobalt/kernel/sched.h>
 #include <cobalt/kernel/thread.h>
@@ -578,15 +578,17 @@ EXPORT_SYMBOL_GPL(__xntimer_set_affinity);
 
 int xntimer_setup_ipi(void)
 {
-	return ipipe_request_irq(&xnsched_realtime_domain,
+#warning TODO
+/*	return ipipe_request_irq(&xnsched_realtime_domain,
 				 IPIPE_HRTIMER_IPI,
 				 (ipipe_irq_handler_t)xnintr_core_clock_handler,
-				 NULL, NULL);
+				 NULL, NULL);*/
 }
 
 void xntimer_release_ipi(void)
 {
-	ipipe_free_irq(&xnsched_realtime_domain, IPIPE_HRTIMER_IPI);
+#warning TODO
+	//ipipe_free_irq(&xnsched_realtime_domain, IPIPE_HRTIMER_IPI);
 }
 
 #endif /* CONFIG_SMP */
@@ -745,7 +747,7 @@ static int program_htick_shot(unsigned long delay,
  *
  * @note GENERIC_CLOCKEVENTS is required from the host kernel.
  */
-static void switch_htick_mode(enum clock_event_mode mode,
+/*static void switch_htick_mode(enum clock_event_mode mode,
 			      struct clock_event_device *cdev)
 {
 	struct xnsched *sched;
@@ -772,7 +774,7 @@ static void switch_htick_mode(enum clock_event_mode mode,
 	}
 
 	xnlock_put_irqrestore(&nklock, s);
-}
+}*/
 
 /**
  * @fn int xntimer_grab_hardware(void)
@@ -805,6 +807,8 @@ static int grab_hardware_timer(int cpu)
 {
 	int tickval, ret;
 
+#warning TODO
+#if 0
 	ret = ipipe_timer_start(xnintr_core_clock_handler,
 				switch_htick_mode, program_htick_shot, cpu);
 	switch (ret) {
@@ -835,6 +839,8 @@ static int grab_hardware_timer(int cpu)
 	}
 
 	return tickval;
+#endif
+	return -ENODEV;
 }
 
 int xntimer_grab_hardware(void)
@@ -909,7 +915,8 @@ fail:
 		sched = xnsched_struct(cpu);
 		xntimer_stop(&sched->htimer);
 		xnlock_put_irqrestore(&nklock, s);
-		ipipe_timer_stop(_cpu);
+#warning TODO
+		//ipipe_timer_stop(_cpu);
 	}
 
 	xntimer_release_ipi();
@@ -936,8 +943,9 @@ void xntimer_release_hardware(void)
 	 * timer, since this could cause deadlock situations to arise
 	 * on SMP systems.
 	 */
-	for_each_realtime_cpu(cpu)
-		ipipe_timer_stop(cpu);
+#warning TODO
+/*	for_each_realtime_cpu(cpu)
+		ipipe_timer_stop(cpu);*/
 
 	xntimer_release_ipi();
 

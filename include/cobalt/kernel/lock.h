@@ -20,7 +20,8 @@
 #ifndef _COBALT_KERNEL_LOCK_H
 #define _COBALT_KERNEL_LOCK_H
 
-#include <linux/ipipe.h>
+//#include <linux/ipipe.h>
+#include <linux/dovetail.h>
 #include <linux/percpu.h>
 #include <cobalt/kernel/assert.h>
 
@@ -36,32 +37,38 @@ typedef unsigned long spl_t;
  *
  * @param[out] x An unsigned long integer context variable
  */
-#define splhigh(x)  ((x) = ipipe_test_and_stall_head() & 1)
+//#define splhigh(x)  ((x) = ipipe_test_and_stall_head() & 1)
+#define splhigh(x) ((x) = oob_irq_save())
 #ifdef CONFIG_SMP
 /**
  * Restore the saved hard interrupt state on the local processor.
  *
  * @param[in] x The context variable previously updated by splhigh()
  */
-#define splexit(x)  ipipe_restore_head(x & 1)
+//#define splexit(x)  ipipe_restore_head(x & 1)
+#define splexit(x)  oob_irq_restore(x)
 #else /* !CONFIG_SMP */
-#define splexit(x)  ipipe_restore_head(x)
+//#define splexit(x)  ipipe_restore_head(x)
+#define splexit(x)  oob_irq_restore(x)
 #endif /* !CONFIG_SMP */
 /**
  * Hard disable interrupts on the local processor.
  */
-#define splmax()    ipipe_stall_head()
+//#define splmax()    ipipe_stall_head()
+#define splmax()    oob_irq_disable()
 /**
  * Hard enable interrupts on the local processor.
  */
-#define splnone()   ipipe_unstall_head()
+//#define splnone()   ipipe_unstall_head()
+#define splnone()   oob_irq_enable()
 /**
  * Test hard interrupt state on the local processor.
  *
  * @return Zero if the local processor currently accepts interrupts,
  * non-zero otherwise.
  */
-#define spltest()   ipipe_test_head()
+//#define spltest()   ipipe_test_head()
+#define spltest()   oob_irqs_disabled()
 
 #ifdef CONFIG_XENO_OPT_DEBUG_LOCKING
 
@@ -175,7 +182,7 @@ static inline void xnlock_init (struct xnlock *lock)
 
 static inline int ____xnlock_get(struct xnlock *lock /*, */ XNLOCK_DBG_CONTEXT_ARGS)
 {
-	int cpu = ipipe_processor_id();
+	int cpu = raw_smp_processor_id();
 	unsigned long long start;
 
 	if (lock->owner == cpu)
@@ -213,7 +220,7 @@ void ___xnlock_put(struct xnlock *lock /*, */ XNLOCK_DBG_CONTEXT_ARGS);
 /* Disable UP-over-SMP kernel optimization in debug mode. */
 #define __locking_active__  1
 #else
-#define __locking_active__  ipipe_smp_p
+#define __locking_active__  IS_ENABLED(CONFIG_SMP)
 #endif
 
 static inline spl_t
@@ -242,7 +249,7 @@ static inline void __xnlock_put_irqrestore(struct xnlock *lock, spl_t flags
 static inline int xnlock_is_owner(struct xnlock *lock)
 {
 	if (__locking_active__)
-		return lock->owner == ipipe_processor_id();
+		return lock->owner == raw_smp_processor_id();
 
 	return 1;
 }

@@ -19,8 +19,8 @@
 #ifndef _COBALT_KERNEL_APC_H
 #define _COBALT_KERNEL_APC_H
 
-#include <linux/ipipe.h>
-#include <asm/xenomai/machine.h>
+//#include <linux/ipipe.h>
+//#include <asm/xenomai/machine.h>
 
 /**
  * @addtogroup cobalt_core_apc
@@ -35,10 +35,10 @@ void xnapc_free(int apc);
 
 static inline void __xnapc_schedule(int apc)
 {
-	unsigned long *p = &raw_cpu_ptr(&cobalt_machine_cpudata)->apc_pending;
+/*	unsigned long *p = &raw_cpu_ptr(&cobalt_machine_cpudata)->apc_pending;
 
 	if (!__test_and_set_bit(apc, p))
-		ipipe_post_irq_root(cobalt_pipeline.apc_virq);
+		ipipe_post_irq_root(cobalt_pipeline.apc_virq);*/
 }
 
 /**
@@ -65,11 +65,11 @@ static inline void __xnapc_schedule(int apc)
  */
 static inline void xnapc_schedule(int apc)
 {
-	unsigned long flags;
+/*	unsigned long flags;
 
 	flags = ipipe_test_and_stall_head() & 1;
 	__xnapc_schedule(apc);
-	ipipe_restore_head(flags);
+	ipipe_restore_head(flags);*/
 }
 
 void apc_dispatch(unsigned int virq, void *arg);

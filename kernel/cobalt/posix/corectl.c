@@ -17,7 +17,7 @@
  */
 #include <linux/types.h>
 #include <linux/errno.h>
-#include <linux/ipipe.h>
+//#include <linux/ipipe.h>
 #include <linux/kconfig.h>
 #include <linux/atomic.h>
 #include <linux/printk.h>
@@ -89,7 +89,7 @@ static int do_conf_option(int option, void __user *u_buf, size_t u_bufsz)
 		val = realtime_core_state();
 		break;
 	default:
-		if (!ipipe_root_p)
+		if (running_oob())
 			/* Switch to secondary mode first. */
 			return -ENOSYS;
 		vec.u_buf = u_buf;

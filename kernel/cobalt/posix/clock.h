@@ -28,12 +28,12 @@
 
 struct xnclock;
 
-static inline void ns2ts(struct timespec *ts, xnticks_t nsecs)
+static inline void ns2ts(struct timespec64 *ts, xnticks_t nsecs)
 {
 	ts->tv_sec = xnclock_divrem_billion(nsecs, &ts->tv_nsec);
 }
 
-static inline xnticks_t ts2ns(const struct timespec *ts)
+static inline xnticks_t ts2ns(const struct timespec64 *ts)
 {
 	xnticks_t nsecs = ts->tv_nsec;
 
@@ -43,7 +43,7 @@ static inline xnticks_t ts2ns(const struct timespec *ts)
 	return nsecs;
 }
 
-static inline xnticks_t tv2ns(const struct timeval *tv)
+static inline xnticks_t tv2ns(const struct __kernel_old_timeval *tv)
 {
 	xnticks_t nsecs = tv->tv_usec * 1000;
 
@@ -53,7 +53,7 @@ static inline xnticks_t tv2ns(const struct timeval *tv)
 	return nsecs;
 }
 
-static inline void ticks2tv(struct timeval *tv, xnticks_t ticks)
+static inline void ticks2tv(struct __kernel_old_timeval *tv, xnticks_t ticks)
 {
 	unsigned long nsecs;
 
@@ -80,37 +80,37 @@ static inline int clock_flag(int flag, clockid_t clock_id)
 }
 
 int __cobalt_clock_getres(clockid_t clock_id,
-			  struct timespec *ts);
+			  struct timespec64 *ts);
 
 int __cobalt_clock_gettime(clockid_t clock_id,
-			   struct timespec *ts);
+			   struct timespec64 *ts);
 
 int __cobalt_clock_settime(clockid_t clock_id,
-			   const struct timespec *ts);
+			   const struct timespec64 *ts);
 
 int __cobalt_clock_adjtime(clockid_t clock_id,
-			   struct timex *tx);
+			   struct __kernel_timex *tx);
 
 int __cobalt_clock_nanosleep(clockid_t clock_id, int flags,
-			     const struct timespec *rqt,
-			     struct timespec *rmt);
+			     const struct timespec64 *rqt,
+			     struct timespec64 *rmt);
 
 COBALT_SYSCALL_DECL(clock_getres,
-		    (clockid_t clock_id, struct timespec __user *u_ts));
+		    (clockid_t clock_id, struct timespec64 __user *u_ts));
 
 COBALT_SYSCALL_DECL(clock_gettime,
-		    (clockid_t clock_id, struct timespec __user *u_ts));
+		    (clockid_t clock_id, struct timespec64 __user *u_ts));
 
 COBALT_SYSCALL_DECL(clock_settime,
-		    (clockid_t clock_id, const struct timespec __user *u_ts));
+		    (clockid_t clock_id, const struct timespec64 __user *u_ts));
 
 COBALT_SYSCALL_DECL(clock_adjtime,
-		    (clockid_t clock_id, struct timex __user *u_tx));
+		    (clockid_t clock_id, struct __kernel_timex __user *u_tx));
 
 COBALT_SYSCALL_DECL(clock_nanosleep,
 		    (clockid_t clock_id, int flags,
-		     const struct timespec __user *u_rqt,
-		     struct timespec __user *u_rmt));
+		     const struct timespec64 __user *u_rqt,
+		     struct timespec64 __user *u_rmt));
 
 int cobalt_clock_register(struct xnclock *clock,
 			  const cpumask_t *affinity,

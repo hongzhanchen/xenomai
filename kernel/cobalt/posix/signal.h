@@ -47,9 +47,10 @@ void cobalt_copy_siginfo(int code,
 		dst->si_value = src->si_value;
 		break;
 	case SI_QUEUE:
+		/* fallthrough */
 	case SI_MESGQ:
 		dst->si_value = src->si_value;
-		/* falldown wanted. */
+		/* fallthrough */
 	case SI_USER:
 		dst->si_pid = src->si_pid;
 		dst->si_uid = src->si_uid;
@@ -59,7 +60,7 @@ void cobalt_copy_siginfo(int code,
 int __cobalt_sigwait(sigset_t *set);
 
 int __cobalt_sigtimedwait(sigset_t *set,
-			  const struct timespec *timeout,
+			  const struct timespec64 *timeout,
 			  void __user *u_si,
 			  bool compat);
 
@@ -94,7 +95,7 @@ COBALT_SYSCALL_DECL(sigwait,
 COBALT_SYSCALL_DECL(sigtimedwait,
 		    (const sigset_t __user *u_set,
 		     struct siginfo __user *u_si,
-		     const struct timespec __user *u_timeout));
+		     const struct timespec64 __user *u_timeout));
 
 COBALT_SYSCALL_DECL(sigwaitinfo,
 		    (const sigset_t __user *u_set,

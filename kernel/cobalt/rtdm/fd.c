@@ -256,9 +256,9 @@ out:
 }
 EXPORT_SYMBOL_GPL(rtdm_fd_get);
 
-struct lostage_trigger_close {
-	struct ipipe_work_header work; /* Must be first */
-};
+//struct lostage_trigger_close {
+//	struct ipipe_work_header work; /* Must be first */
+//};
 
 static int fd_cleanup_thread(void *data)
 {
@@ -287,10 +287,13 @@ static int fd_cleanup_thread(void *data)
 	return 0;
 }
 
-static void lostage_trigger_close(struct ipipe_work_header *work)
+//static void lostage_trigger_close(struct ipipe_work_header *work)
+static void lostage_trigger_close(struct irq_work *work)
 {
 	up(&rtdm_fd_cleanup_sem);
 }
+
+static DEFINE_IRQ_WORK(close_irq_work, lostage_trigger_close);
 
 static void __put_fd(struct rtdm_fd *fd, spl_t s)
 {
@@ -306,21 +309,22 @@ static void __put_fd(struct rtdm_fd *fd, spl_t s)
 	if (!destroy)
 		return;
 
-	if (ipipe_root_p)
+	if (running_inband())
 		fd->ops->close(fd);
 	else {
-		struct lostage_trigger_close closework = {
+/*		struct lostage_trigger_close closework = {
 			.work = {
 				.size = sizeof(closework),
 				.handler = lostage_trigger_close,
 			},
-		};
+		};*/
 
 		xnlock_get_irqsave(&fdtree_lock, s);
 		list_add_tail(&fd->cleanup, &rtdm_fd_cleanup_queue);
 		xnlock_put_irqrestore(&fdtree_lock, s);
 
-		ipipe_post_work_root(&closework, work);
+//		ipipe_post_work_root(&closework, work);
+		irq_work_queue(&close_irq_work);
 	}
 }
 
@@ -470,7 +474,7 @@ static struct rtdm_fd *get_fd_fixup_mode(int ufd)
 	 * the syscall from secondary mode.
 	 */
 	thread = xnthread_current();
-	if (unlikely(ipipe_root_p)) {
+	if (unlikely(running_inband())) {
 		if (thread == NULL ||
 		    xnthread_test_localinfo(thread, XNDESCENT))
 			return fd;
@@ -508,7 +512,7 @@ int rtdm_fd_ioctl(int ufd, unsigned int request, ...)
 
 	trace_cobalt_fd_ioctl(current, fd, ufd, request);
 
-	if (ipipe_root_p)
+	if (running_inband())
 		err = fd->ops->ioctl_nrt(fd, request, arg);
 	else
 		err = fd->ops->ioctl_rt(fd, request, arg);
@@ -547,7 +551,7 @@ rtdm_fd_read(int ufd, void __user *buf, size_t size)
 
 	trace_cobalt_fd_read(current, fd, ufd, size);
 
-	if (ipipe_root_p)
+	if (running_inband())
 		ret = fd->ops->read_nrt(fd, buf, size);
 	else
 		ret = fd->ops->read_rt(fd, buf, size);
@@ -580,7 +584,7 @@ ssize_t rtdm_fd_write(int ufd, const void __user *buf, size_t size)
 
 	trace_cobalt_fd_write(current, fd, ufd, size);
 
-	if (ipipe_root_p)
+	if (running_inband())
 		ret = fd->ops->write_nrt(fd, buf, size);
 	else
 		ret = fd->ops->write_rt(fd, buf, size);
@@ -616,7 +620,7 @@ ssize_t rtdm_fd_recvmsg(int ufd, struct user_msghdr *msg, int flags)
 	if (fd->oflags & O_NONBLOCK)
 		flags |= MSG_DONTWAIT;
 
-	if (ipipe_root_p)
+	if (running_inband())
 		ret = fd->ops->recvmsg_nrt(fd, msg, flags);
 	else
 		ret = fd->ops->recvmsg_rt(fd, msg, flags);
@@ -651,11 +655,11 @@ int __rtdm_fd_recvmmsg(int ufd, void __user *u_msgvec, unsigned int vlen,
 		       unsigned int flags, void __user *u_timeout,
 		       int (*get_mmsg)(struct mmsghdr *mmsg, void __user *u_mmsg),
 		       int (*put_mmsg)(void __user **u_mmsg_p, const struct mmsghdr *mmsg),
-		       int (*get_timespec)(struct timespec *ts, const void __user *u_ts))
+		       int (*get_timespec)(struct timespec64 *ts, const void __user *u_ts))
 {
 	struct cobalt_recvmmsg_timer rq;
 	xntmode_t tmode = XN_RELATIVE;
-	struct timespec ts = { 0 };
+	struct timespec64 ts = { 0 };
 	int ret = 0, datagrams = 0;
 	xnticks_t timeout = 0;
 	struct mmsghdr mmsg;
@@ -761,7 +765,7 @@ ssize_t rtdm_fd_sendmsg(int ufd, const struct user_msghdr *msg, int flags)
 	if (fd->oflags & O_NONBLOCK)
 		flags |= MSG_DONTWAIT;
 
-	if (ipipe_root_p)
+	if (running_inband())
 		ret = fd->ops->sendmsg_nrt(fd, msg, flags);
 	else
 		ret = fd->ops->sendmsg_rt(fd, msg, flags);

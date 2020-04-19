@@ -147,7 +147,8 @@ static int faults_vfile_show(struct xnvfile_regular_iterator *it, void *data)
 	for_each_realtime_cpu(cpu)
 		xnvfile_printf(it, "        CPU%d", cpu);
 
-	for (trap = 0; cobalt_machine.fault_labels[trap]; trap++) {
+#warning TODO
+/*	for (trap = 0; cobalt_machine.fault_labels[trap]; trap++) {
 		if (*cobalt_machine.fault_labels[trap] == '\0')
 			continue;
 
@@ -159,7 +160,7 @@ static int faults_vfile_show(struct xnvfile_regular_iterator *it, void *data)
 
 		xnvfile_printf(it, "    (%s)",
 			       cobalt_machine.fault_labels[trap]);
-	}
+	}*/
 
 	xnvfile_putc(it, '\n');
 
@@ -191,9 +192,10 @@ static int apc_vfile_show(struct xnvfile_regular_iterator *it, void *data)
 
 		xnvfile_printf(it, "\n%3d: ", apc);
 
-		for_each_realtime_cpu(cpu)
+#warning TODO
+/*		for_each_realtime_cpu(cpu)
 			xnvfile_printf(it, "%12lu",
-				       per_cpu(cobalt_machine_cpudata, cpu).apc_shots[apc]);
+				       per_cpu(cobalt_machine_cpudata, cpu).apc_shots[apc]);*/
 
 		if (cobalt_pipeline.apc_table[apc].name)
 			xnvfile_printf(it, "    (%s)",

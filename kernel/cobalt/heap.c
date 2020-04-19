@@ -848,7 +848,7 @@ void *xnheap_vmalloc(size_t size)
 	 * software on a 32bit system had to be wrong in the first
 	 * place anyway.
 	 */
-	return __vmalloc(size, GFP_KERNEL, PAGE_KERNEL);
+	return __vmalloc(size, GFP_KERNEL/*, PAGE_KERNEL*/);
 }
 EXPORT_SYMBOL_GPL(xnheap_vmalloc);
 

@@ -36,12 +36,13 @@ typedef union fpregs_state x86_fpustate;
 
 struct xnarchtcb {
 	struct xntcb core;
+/*
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,8,0)
 	unsigned long sp;
 	unsigned long *spp;
 	unsigned long ip;
 	unsigned long *ipp;
-#endif  
+#endif
 #ifdef IPIPE_X86_FPU_EAGER
 	struct fpu *kfpu;
 #else
@@ -49,7 +50,13 @@ struct xnarchtcb {
 	unsigned int root_used_math: 1;
 	x86_fpustate *kfpu_state;
 #endif
+*/
 	unsigned int root_kfpu: 1;
+};
+
+struct xnarch_fault_data {
+	int exception;
+	struct pt_regs *regs;
 };
 
 #define xnarch_fpu_ptr(tcb)     ((tcb)->fpup)
@@ -66,8 +73,8 @@ struct xnarchtcb {
 
 void xnarch_switch_fpu(struct xnthread *from, struct xnthread *to);
 
-int xnarch_handle_fpu_fault(struct xnthread *from, 
-			struct xnthread *to, struct ipipe_trap_data *d);
+/*int xnarch_handle_fpu_fault(struct xnthread *from, 
+			struct xnthread *to, struct ipipe_trap_data *d);*/
 
 void xnarch_leave_root(struct xnthread *root);
 
@@ -81,10 +88,10 @@ static inline void xnarch_enter_root(struct xnthread *root) { }
 
 static inline int xnarch_escalate(void)
 {
-	if (ipipe_root_p) {
+/*	if (ipipe_root_p) {
 		ipipe_raise_irq(cobalt_pipeline.escalate_virq);
 		return 1;
-	}
+	}*/
 
 	return 0;
 }

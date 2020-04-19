@@ -18,7 +18,7 @@
  */
 #include <linux/init.h>
 #include <linux/module.h>
-#include <linux/ipipe_tickdev.h>
+//#include <linux/ipipe_tickdev.h>
 #include <xenomai/version.h>
 #include <cobalt/kernel/sched.h>
 #include <cobalt/kernel/clock.h>
@@ -69,8 +69,8 @@ static BLOCKING_NOTIFIER_HEAD(state_notifier_list);
 struct cobalt_pipeline cobalt_pipeline;
 EXPORT_SYMBOL_GPL(cobalt_pipeline);
 
-DEFINE_PER_CPU(struct cobalt_machine_cpudata, cobalt_machine_cpudata);
-EXPORT_PER_CPU_SYMBOL_GPL(cobalt_machine_cpudata);
+//DEFINE_PER_CPU(struct cobalt_machine_cpudata, cobalt_machine_cpudata);
+//EXPORT_PER_CPU_SYMBOL_GPL(cobalt_machine_cpudata);
 
 atomic_t cobalt_runstate = ATOMIC_INIT(COBALT_STATE_WARMUP);
 EXPORT_SYMBOL_GPL(cobalt_runstate);
@@ -136,14 +136,15 @@ static void sys_shutdown(void)
 
 static int __init mach_setup(void)
 {
-	struct ipipe_sysinfo sysinfo;
-	int ret, virq;
+//	struct ipipe_sysinfo sysinfo;
+	int ret/*, virq*/;
 
-	ret = ipipe_select_timers(&xnsched_realtime_cpus);
+/*	ret = ipipe_select_timers(&xnsched_realtime_cpus);
 	if (ret < 0)
-		return ret;
+		return ret;*/
+#warning TODO: Timer init
 
-	ipipe_get_sysinfo(&sysinfo);
+/*	ipipe_get_sysinfo(&sysinfo);
 
 	if (timerfreq_arg == 0)
 		timerfreq_arg = sysinfo.sys_hrtimer_freq;
@@ -157,15 +158,19 @@ static int __init mach_setup(void)
 	}
 
 	cobalt_pipeline.timer_freq = timerfreq_arg;
-	cobalt_pipeline.clock_freq = clockfreq_arg;
+	cobalt_pipeline.clock_freq = clockfreq_arg;*/
+	cobalt_pipeline.timer_freq = 1;
+	cobalt_pipeline.clock_freq = 1;
 
-	if (cobalt_machine.init) {
+#warning TODO: no more machine?
+/*	if (cobalt_machine.init) {
 		ret = cobalt_machine.init();
 		if (ret)
 			return ret;
-	}
+	}*/
 
-	ipipe_register_head(&xnsched_realtime_domain, "Xenomai");
+#warning TODO: irq init
+/*	ipipe_register_head(&xnsched_realtime_domain, "Xenomai");
 
 	ret = -EBUSY;
 	virq = ipipe_alloc_virq();
@@ -188,7 +193,8 @@ static int __init mach_setup(void)
 	ipipe_request_irq(&xnsched_realtime_domain,
 			  cobalt_pipeline.escalate_virq,
 			  (ipipe_irq_handler_t)__xnsched_run_handler,
-			  NULL, NULL);
+			  NULL, NULL);*/
+#warning TODO: Dovetail init
 
 	ret = xnclock_init(cobalt_pipeline.clock_freq);
 	if (ret)
@@ -197,7 +203,7 @@ static int __init mach_setup(void)
 	return 0;
 
 fail_clock:
-	ipipe_free_irq(&xnsched_realtime_domain,
+/*	ipipe_free_irq(&xnsched_realtime_domain,
 		       cobalt_pipeline.escalate_virq);
 	ipipe_free_virq(cobalt_pipeline.escalate_virq);
 fail_escalate:
@@ -208,26 +214,26 @@ fail_apc:
 	ipipe_unregister_head(&xnsched_realtime_domain);
 
 	if (cobalt_machine.cleanup)
-		cobalt_machine.cleanup();
+		cobalt_machine.cleanup();*/
 
 	return ret;
 }
 
 static inline int __init mach_late_setup(void)
 {
-	if (cobalt_machine.late_init)
-		return cobalt_machine.late_init();
+/*	if (cobalt_machine.late_init)
+		return cobalt_machine.late_init();*/
 
 	return 0;
 }
 
 static __init void mach_cleanup(void)
 {
-	ipipe_unregister_head(&xnsched_realtime_domain);
+/*	ipipe_unregister_head(&xnsched_realtime_domain);
 	ipipe_free_irq(&xnsched_realtime_domain,
 		       cobalt_pipeline.escalate_virq);
 	ipipe_free_virq(cobalt_pipeline.escalate_virq);
-	ipipe_timers_release();
+	ipipe_timers_release();*/
 	xnclock_cleanup();
 }
 

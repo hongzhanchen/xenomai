@@ -270,7 +270,7 @@ struct us_cond_data {
 	int err;
 };
 
-static inline int cond_fetch_timeout(struct timespec *ts,
+static inline int cond_fetch_timeout(struct timespec64 *ts,
 				     const void __user *u_ts)
 {
 	return u_ts == NULL ? -EFAULT :
@@ -281,14 +281,14 @@ int __cobalt_cond_wait_prologue(struct cobalt_cond_shadow __user *u_cnd,
 				struct cobalt_mutex_shadow __user *u_mx,
 				int *u_err,
 				void __user *u_ts,
-				int (*fetch_timeout)(struct timespec *ts,
+				int (*fetch_timeout)(struct timespec64 *ts,
 						     const void __user *u_ts))
 {
 	struct xnthread *cur = xnthread_current();
 	struct cobalt_cond *cond;
 	struct cobalt_mutex *mx;
 	struct us_cond_data d;
-	struct timespec ts;
+	struct timespec64 ts;
 	xnhandle_t handle;
 	int err, perr = 0;
 	__u32 offset;
@@ -349,7 +349,7 @@ COBALT_SYSCALL(cond_wait_prologue, nonrestartable,
 		struct cobalt_mutex_shadow __user *u_mx,
 		int *u_err,
 		unsigned int timed,
-		struct timespec __user *u_ts))
+		struct timespec64 __user *u_ts))
 {
 	return __cobalt_cond_wait_prologue(u_cnd, u_mx, u_err, u_ts,
 					   timed ? cond_fetch_timeout : NULL);

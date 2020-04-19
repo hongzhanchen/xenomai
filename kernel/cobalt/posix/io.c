@@ -93,7 +93,7 @@ COBALT_SYSCALL(recvmsg, handover,
 	return cobalt_copy_to_user(umsg, &m, sizeof(*umsg)) ?: ret;
 }
 
-static int get_timespec(struct timespec *ts,
+static int get_timespec(struct timespec64 *ts,
 			const void __user *u_ts)
 {
 	return cobalt_copy_from_user(ts, u_ts, sizeof(*ts));
@@ -114,7 +114,7 @@ static int put_mmsg(void __user **u_mmsg_p, const struct mmsghdr *mmsg)
 
 COBALT_SYSCALL(recvmmsg, primary,
 	       (int fd, struct mmsghdr __user *u_msgvec, unsigned int vlen,
-		unsigned int flags, struct timespec *u_timeout))
+		unsigned int flags, struct timespec64 *u_timeout))
 {
 	return __rtdm_fd_recvmmsg(fd, u_msgvec, vlen, flags, u_timeout,
 				  get_mmsg, put_mmsg, get_timespec);
@@ -218,7 +218,7 @@ COBALT_SYSCALL(select, primary,
 		fd_set __user *u_rfds,
 		fd_set __user *u_wfds,
 		fd_set __user *u_xfds,
-		struct timeval __user *u_tv))
+		struct __kernel_old_timeval __user *u_tv))
 {
 	fd_set __user *ufd_sets[XNSELECT_MAX_TYPES] = {
 		[XNSELECT_READ] = u_rfds,
@@ -234,7 +234,7 @@ COBALT_SYSCALL(select, primary,
 	xntmode_t mode = XN_RELATIVE;
 	struct xnselector *selector;
 	struct xnthread *curr;
-	struct timeval tv;
+	struct __kernel_old_timeval tv;
 	size_t fds_size;
 	int i, err;
 
