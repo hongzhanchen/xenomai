@@ -902,6 +902,9 @@ struct rtdm_nrtsig {
 	struct irq_work irq_work;
 };
 
+int rtdm_nrtsig_init(rtdm_nrtsig_t *nrt_sig, rtdm_nrtsig_handler_t handler,
+		void *arg);
+
 void rtdm_schedule_nrt_work(struct work_struct *lostage_work);
 /** @} rtdm_nrtsignal */
 
