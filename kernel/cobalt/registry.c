@@ -21,8 +21,8 @@
 #include <cobalt/kernel/heap.h>
 #include <cobalt/kernel/registry.h>
 #include <cobalt/kernel/thread.h>
-#include <cobalt/kernel/apc.h>
 #include <cobalt/kernel/assert.h>
+#include <linux/irq_work.h>
 
 /**
  * @ingroup cobalt_core
@@ -338,6 +338,17 @@ static void registry_proc_schedule(void *cookie)
 	schedule_work(&registry_proc_work);
 }
 
+static void do_xnregistry_work(struct irq_work *work)
+{
+	/*
+	 * schedule_work() will check for us if the work has already
+	 * been scheduled, so just be lazy and submit blindly.
+	 */
+	schedule_work(&registry_proc_work);
+
+}
+static DEFINE_IRQ_WORK(xnregistry_irq_work, do_xnregistry_work);
+
 static int registry_export_vfsnap(struct xnobject *object,
 				  struct xnpnode *pnode)
 {
@@ -472,6 +483,7 @@ static inline void registry_export_pnode(struct xnobject *object,
 	list_add_tail(&object->link, &proc_object_list);
 #warning TODO: irq_work
 	//__xnapc_schedule(proc_apc);
+	 irq_work_queue(&xnregistry_irq_work);
 }
 
 static inline void registry_unexport_pnode(struct xnobject *object)
@@ -489,6 +501,7 @@ static inline void registry_unexport_pnode(struct xnobject *object)
 		list_add_tail(&object->link, &proc_object_list);
 #warning TODO: irq_work
 		//__xnapc_schedule(proc_apc);
+		irq_work_queue(&xnregistry_irq_work);
 	} else {
 		/*
 		 * Unexporting before the lower stage has had a chance
