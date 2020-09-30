@@ -23,7 +23,12 @@
 #include <cobalt/kernel/sched.h>
 #include <cobalt/kernel/synch.h>
 #include <cobalt/kernel/select.h>
-#include <cobalt/kernel/apc.h>
+#include <linux/irq_work.h>
+
+
+static void cobalt_select_execute(struct irq_work *work);
+
+static DEFINE_IRQ_WORK(xnselect_irq_work, cobalt_select_execute);
 
 /**
  * @ingroup cobalt_core
@@ -49,7 +54,6 @@
  */
 
 static LIST_HEAD(selector_list);
-static int deletion_apc;
 
 /**
  * Initialize a @a struct @a xnselect structure.
@@ -399,9 +403,9 @@ void xnselector_destroy(struct xnselector *selector)
 
 	xnlock_get_irqsave(&nklock, s);
 	list_add_tail(&selector->destroy_link, &selector_list);
-#warning TODO: irq_work
-	//__xnapc_schedule(deletion_apc);
 	xnlock_put_irqrestore(&nklock, s);
+
+	irq_work_queue(&xnselect_irq_work);
 }
 EXPORT_SYMBOL_GPL(xnselector_destroy);
 
@@ -442,20 +446,19 @@ out:
 	xnlock_put_irqrestore(&nklock, s);
 }
 
+static void cobalt_select_execute(struct irq_work *work)
+{
+	xnselector_destroy_loop(NULL);
+}
+
+
 int xnselect_mount(void)
 {
-#warning TODO: use irq_work
-	/*deletion_apc = xnapc_alloc("selector_list_destroy",
-				   xnselector_destroy_loop, NULL);
-	if (deletion_apc < 0)
-		return deletion_apc;*/
-
 	return 0;
 }
 
 int xnselect_umount(void)
 {
-	//xnapc_free(deletion_apc);
 	return 0;
 }
 
