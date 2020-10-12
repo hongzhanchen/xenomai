@@ -88,6 +88,11 @@ static inline void xnarch_enter_root(struct xnthread *root) { }
 
 static inline int xnarch_escalate(void)
 {
+	if (running_inband()) {
+		/* orginal xenomai domain equals oob stage */
+		irq_post_oob(cobalt_pipeline.escalate_virq);
+		return 1;
+	}
 /*	if (ipipe_root_p) {
 		ipipe_raise_irq(cobalt_pipeline.escalate_virq);
 		return 1;

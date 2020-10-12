@@ -30,11 +30,15 @@
 #include <cobalt/kernel/pipe.h>
 #include <cobalt/kernel/select.h>
 #include <cobalt/kernel/vdso.h>
+#include <linux/irqdomain.h>
+#include <linux/irq_pipeline.h>
 #include <rtdm/fd.h>
 #include "rtdm/internal.h"
 #include "posix/internal.h"
 #include "procfs.h"
 
+
+static DEFINE_PER_CPU(int, cobalt_escalate_devid);
 /**
  * @defgroup cobalt Cobalt
  *
@@ -134,10 +138,17 @@ static void sys_shutdown(void)
 	xnheap_vfree(membase);
 }
 
+static irqreturn_t cobalt_escalate_irq_handler(int sirq, void *dev_id)
+{
+	__xnsched_run_handler();
+
+	return IRQ_HANDLED;
+}
+
 static int __init mach_setup(void)
 {
 //	struct ipipe_sysinfo sysinfo;
-	int ret/*, virq*/;
+	int ret, virq;
 
 /*	ret = ipipe_select_timers(&xnsched_realtime_cpus);
 	if (ret < 0)
@@ -170,6 +181,25 @@ static int __init mach_setup(void)
 	}*/
 
 #warning TODO: irq init
+	/* init escalate irq */
+	ret = -EAGAIN;
+	virq = irq_create_direct_mapping(synthetic_irq_domain);
+	if (WARN_ON(virq == 0))
+		return ret;
+
+	ret = __request_percpu_irq(virq,
+			cobalt_escalate_irq_handler,
+			IRQF_OOB,
+			"cobalt escalate",
+			&cobalt_escalate_devid);
+	if (WARN_ON(ret)) {
+		irq_dispose_mapping(virq);
+		return ret;
+	}
+
+	cobalt_pipeline.escalate_virq = virq;
+
+
 /*	ipipe_register_head(&xnsched_realtime_domain, "Xenomai");
 
 	ret = -EBUSY;
@@ -203,6 +233,9 @@ static int __init mach_setup(void)
 	return 0;
 
 fail_clock:
+	free_percpu_irq(cobalt_pipeline.escalate_virq,
+			&cobalt_escalate_devid);
+	irq_dispose_mapping(cobalt_pipeline.escalate_virq);
 /*	ipipe_free_irq(&xnsched_realtime_domain,
 		       cobalt_pipeline.escalate_virq);
 	ipipe_free_virq(cobalt_pipeline.escalate_virq);
