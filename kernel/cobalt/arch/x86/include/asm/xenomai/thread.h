@@ -23,6 +23,7 @@
 #include <asm-generic/xenomai/thread.h>
 #include <asm/xenomai/wrappers.h>
 #include <asm/traps.h>
+#include <linux/irq_pipeline.h>
 
 #ifndef IPIPE_X86_FPU_EAGER
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
@@ -90,7 +91,7 @@ static inline int xnarch_escalate(void)
 {
 	if (running_inband()) {
 		/* orginal xenomai domain equals oob stage */
-		irq_post_oob(cobalt_pipeline.escalate_virq);
+		irq_inject_pipeline(cobalt_pipeline.escalate_virq);
 		return 1;
 	}
 /*	if (ipipe_root_p) {
