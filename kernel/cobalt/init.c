@@ -225,6 +225,7 @@ static int __init mach_setup(void)
 			  (ipipe_irq_handler_t)__xnsched_run_handler,
 			  NULL, NULL);*/
 #warning TODO: Dovetail init
+	enable_oob_stage("Xenomai");
 
 	ret = xnclock_init(cobalt_pipeline.clock_freq);
 	if (ret)
