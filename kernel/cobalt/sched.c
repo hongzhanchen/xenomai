@@ -30,11 +30,6 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/cobalt-core.h>
 
-struct xn_machine_cpudata {
-};
-
-DEFINE_PER_CPU(struct xn_machine_cpudata, xn_machine_cpudata);
-
 static void xnsched_destroy(struct xnsched *sched);
 
 /**

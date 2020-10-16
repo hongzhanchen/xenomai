@@ -576,19 +576,25 @@ void __xntimer_set_affinity(struct xntimer *timer, struct xnsched *sched)
 }
 EXPORT_SYMBOL_GPL(__xntimer_set_affinity);
 
+static irqreturn_t clock_ipi_handler(int irq, void *dev_id)
+{
+	xnintr_core_clock_handler();
+
+	return IRQ_HANDLED;
+}
+
 int xntimer_setup_ipi(void)
 {
-#warning TODO
-/*	return ipipe_request_irq(&xnsched_realtime_domain,
-				 IPIPE_HRTIMER_IPI,
-				 (ipipe_irq_handler_t)xnintr_core_clock_handler,
-				 NULL, NULL);*/
+	return __request_percpu_irq(TIMER_OOB_IPI,
+			clock_ipi_handler,
+			IRQF_OOB, "Xenomai timer IPI",
+			&xn_machine_cpudata);
 }
 
 void xntimer_release_ipi(void)
 {
-#warning TODO
-	//ipipe_free_irq(&xnsched_realtime_domain, IPIPE_HRTIMER_IPI);
+	free_percpu_irq(TIMER_OOB_IPI,
+			&xn_machine_cpudata);
 }
 
 #endif /* CONFIG_SMP */

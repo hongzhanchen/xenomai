@@ -37,6 +37,8 @@
 #include "posix/internal.h"
 #include "procfs.h"
 
+DEFINE_PER_CPU(struct xn_machine_cpudata, xn_machine_cpudata);
+EXPORT_PER_CPU_SYMBOL_GPL(xn_machine_cpudata);
 
 static DEFINE_PER_CPU(int, cobalt_escalate_devid);
 /**

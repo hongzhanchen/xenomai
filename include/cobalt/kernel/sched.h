@@ -31,6 +31,12 @@
 #include <cobalt/kernel/assert.h>
 #include <asm/xenomai/machine.h>
 
+
+struct xn_machine_cpudata {
+};
+
+DECLARE_PER_CPU(struct xn_machine_cpudata, xn_machine_cpudata);
+
 /**
  * @addtogroup cobalt_core_sched
  * @{
