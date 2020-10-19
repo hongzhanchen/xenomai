@@ -235,7 +235,8 @@ void xnclock_core_remote_shot(struct xnsched *sched)
 #ifdef CONFIG_IPIPE
 	ipipe_send_ipi(IPIPE_HRTIMER_IPI, *cpumask_of(xnsched_cpu(sched)));
 #else
-#warning TODO
+	irq_pipeline_send_remote(TIMER_OOB_IPI,
+			cpumask_of(xnsched_cpu(sched)));
 #endif
 }
 #endif
