@@ -937,8 +937,8 @@ static inline int test_resched(struct xnsched *sched)
 	/* Send resched IPI to remote CPU(s). */
 	if (unlikely(!cpumask_empty(&sched->resched))) {
 		smp_mb();
-#warning TODO
-		//ipipe_send_ipi(IPIPE_RESCHEDULE_IPI, sched->resched);
+		irq_pipeline_send_remote(RESCHEDULE_OOB_IPI,
+				&sched->resched);
 		cpumask_clear(&sched->resched);
 	}
 #endif
