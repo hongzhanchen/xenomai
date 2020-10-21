@@ -21,6 +21,7 @@
 #include <linux/mutex.h>
 /*#include <linux/ipipe.h>
 #include <linux/ipipe_tickdev.h>*/
+#include <linux/clockchips.h>
 #include <cobalt/kernel/sched.h>
 #include <cobalt/kernel/intr.h>
 #include <cobalt/kernel/stat.h>
@@ -188,8 +189,8 @@ void xnintr_host_tick(struct xnsched *sched) /* Interrupts off. */
 {
 	sched->lflags &= ~XNHTICK;
 #ifdef XNARCH_HOST_TICK_IRQ
-	//ipipe_post_irq_root(XNARCH_HOST_TICK_IRQ);
-#warning TODO
+	/* use proxy tick to replace host tick */
+	tick_notify_proxy();
 #endif
 }
 
@@ -205,8 +206,7 @@ void xnintr_core_clock_handler(void)
 
 	if (!xnsched_supported_cpu(cpu)) {
 #ifdef XNARCH_HOST_TICK_IRQ
-		//ipipe_post_irq_root(XNARCH_HOST_TICK_IRQ);
-#warning TODO
+		tick_notify_proxy();
 #endif
 		return;
 	}
