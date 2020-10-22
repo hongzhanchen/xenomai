@@ -18,6 +18,7 @@
  */
 #include <linux/percpu.h>
 #include <linux/errno.h>
+#include <linux/irq_pipeline.h>
 //#include <linux/ipipe_tickdev.h>
 #include <cobalt/kernel/sched.h>
 #include <cobalt/kernel/timer.h>
@@ -225,7 +226,7 @@ void xnclock_core_local_shot(struct xnsched *sched)
 #ifdef CONFIG_IPIPE
 	ipipe_timer_set(delay);
 #else
-#warning TODO
+	xnproxy_timer_set(delay, xntimerh_date(&timer->aplink));
 #endif
 }
 

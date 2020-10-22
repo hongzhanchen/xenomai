@@ -370,6 +370,8 @@ void __xntimer_init(struct xntimer *timer,
 		    struct xnsched *sched,
 		    int flags);
 
+void xnproxy_timer_set(unsigned long delta, ktime_t tdata);
+
 void xntimer_set_gravity(struct xntimer *timer,
 			 int gravity);
 

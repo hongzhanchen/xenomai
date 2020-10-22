@@ -373,6 +373,34 @@ void __xntimer_init(struct xntimer *timer,
 }
 EXPORT_SYMBOL_GPL(__xntimer_init);
 
+void xnproxy_timer_set(unsigned long delta, ktime_t tdata)
+{
+	struct clock_proxy_device *dev = __this_cpu_read(proxy_device);
+	struct clock_event_device *real_dev = dev->real_device;
+	int ret;
+	u64 cycles;
+	/* these code are ported from evl_program_proxy_tick */
+	if (real_dev->features & CLOCK_EVT_FEAT_KTIME) {
+		real_dev->set_next_ktime(tdata, real_dev);
+	} else {
+		if (delta <= 0)
+			delta = real_dev->min_delta_ns;
+		else {
+			delta = min_t(int64_t, delta,
+					(int64_t)real_dev->max_delta_ns);
+			delta = max_t(int64_t, delta,
+					(int64_t)real_dev->min_delta_ns);
+		}
+		cycles = ((u64)delta * real_dev->mult) >> real_dev->shift;
+		ret = real_dev->set_next_event(cycles, real_dev);
+		if (ret) {
+			real_dev->set_next_event(real_dev->min_delta_ticks,
+					real_dev);
+		}
+	}
+}
+EXPORT_SYMBOL_GPL(xnproxy_timer_set);
+
 void xntimer_set_gravity(struct xntimer *timer, int gravity)
 {
 	spl_t s;
