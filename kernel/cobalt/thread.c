@@ -1950,8 +1950,8 @@ int xnthread_harden(void)
 
 	xnthread_clear_sync_window(thread, XNRELAX);
 
-#warning TODO
-	ret = 0;//__ipipe_migrate_head();
+	/* Please refer to evl_switch_oob */
+	ret = dovetail_leave_inband();
 	if (ret) {
 		xnthread_test_cancel();
 		xnthread_set_sync_window(thread, XNRELAX);
