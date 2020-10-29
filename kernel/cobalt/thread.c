@@ -2140,8 +2140,8 @@ void xnthread_relax(int notify, int reason)
 		  "xnthread_relax() failed for thread %s[%d]",
 		  thread->name, xnthread_host_pid(thread));
 
-#warning TODO: nothing to be done?
-	//__ipipe_reenter_root();
+	/* Please refer to evl_switch_inband */
+	dovetail_resume_inband();
 
 	/* Account for secondary mode switch. */
 	xnstat_counter_inc(&thread->stat.ssw);
