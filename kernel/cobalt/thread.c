@@ -2542,6 +2542,7 @@ int xnthread_map(struct xnthread *thread)
 
 	thread->u_window = NULL;
 	xnthread_pin_initial(thread);
+	dovetail_init_altsched(&thread->altsched);
 
 	xnthread_init_shadow_tcb(thread);
 	xnthread_suspend(thread, XNRELAX, XN_INFINITE, XN_RELATIVE, NULL);
@@ -2549,8 +2550,8 @@ int xnthread_map(struct xnthread *thread)
 	xnthread_set_state(thread, XNMAPPED);
 	xndebug_shadow_init(thread);
 	xnthread_run_handler(thread, map_thread);
-#warning TODO
-	//ipipe_enable_notifier(p);
+
+	dovetail_start_altsched();
 
 	/*
 	 * CAUTION: Soon after xnthread_init() has returned,
