@@ -81,15 +81,9 @@ static inline void enlist_new_thread(struct xnthread *thread)
 	xnvfile_touch_tag(&nkthreadlist_tag);
 }
 
-struct kthread_arg {
-	struct xnthread *thread;
-	struct completion *done;
-};
-
 static int kthread_trampoline(void *arg)
 {
-	struct kthread_arg *ka = arg;
-	struct xnthread *thread = ka->thread;
+	struct xnthread *thread = arg;
 	struct sched_param param;
 	int ret, policy, prio;
 
@@ -110,7 +104,7 @@ static int kthread_trampoline(void *arg)
 	param.sched_priority = prio;
 	sched_setscheduler(current, policy, &param);
 
-	ret = xnthread_map(thread, ka->done);
+	ret = xnthread_map(thread);
 	if (ret) {
 		printk(XENO_WARNING "failed to create kernel shadow %s\n",
 		       thread->name);
@@ -129,17 +123,16 @@ static int kthread_trampoline(void *arg)
 static inline int spawn_kthread(struct xnthread *thread)
 {
 	DECLARE_COMPLETION_ONSTACK(done);
-	struct kthread_arg ka = {
-		.thread = thread,
-		.done = &done
-	};
 	struct task_struct *p;
 
-	p = kthread_run(kthread_trampoline, &ka, "%s", thread->name);
+	thread->done = &done;
+
+	p = kthread_run(kthread_trampoline, thread, "%s", thread->name);
 	if (IS_ERR(p))
 		return PTR_ERR(p);
 
-	wait_for_completion(&done);
+	wait_for_completion(thread->done);
+	thread->done = NULL;
 
 	return 0;
 }
@@ -2471,20 +2464,21 @@ static void do_parent_wakeup(struct ipipe_work_header *work)
 }
 #endif
 
-static inline void wakeup_parent(struct completion *done)
+static void wakeup_kthread_parent(struct irq_work *irq_work)
 {
-#warning TODO
-/*	struct parent_wakeup_request wakework = {
-		.work = {
-			.size = sizeof(wakework),
-			.handler = do_parent_wakeup,
-		},
-		.done = done,
-	};*/
+	struct xnthread *kthread;
+
+	kthread = container_of(irq_work, struct xnthread, irq_work);
+	complete(kthread->done);
+}
+
+static inline void wakeup_parent(struct xnthread *thread)
+{
+	init_irq_work(&thread->irq_work, wakeup_kthread_parent);
 
 	trace_cobalt_lostage_request("wakeup", current);
 
-	//ipipe_post_work_root(&wakework, work);
+	irq_work_queue(&thread->irq_work);
 }
 
 static inline void init_kthread_info(struct xnthread *thread)
@@ -2497,7 +2491,7 @@ static inline void init_kthread_info(struct xnthread *thread)
 }
 
 /**
- * @fn int xnthread_map(struct xnthread *thread, struct completion *done)
+ * @fn int xnthread_map(struct xnthread *thread)
  * @internal
  * @brief Create a shadow thread context over a kernel task.
  *
@@ -2513,10 +2507,6 @@ static inline void init_kthread_info(struct xnthread *thread)
  * @param thread The descriptor address of the new shadow thread to be
  * mapped to "current". This descriptor must have been previously
  * initialized by a call to xnthread_init().
- *
- * @param done A completion object to be signaled when @a thread is
- * fully mapped over the current Linux context, waiting for
- * xnthread_start().
  *
  * @return 0 is returned on success. Otherwise:
  *
@@ -2538,7 +2528,7 @@ static inline void init_kthread_info(struct xnthread *thread)
  *
  * @coretags{secondary-only, might-switch}
  */
-int xnthread_map(struct xnthread *thread, struct completion *done)
+int xnthread_map(struct xnthread *thread)
 {
 //	struct task_struct *p = current;
 	int ret;
@@ -2579,7 +2569,7 @@ int xnthread_map(struct xnthread *thread, struct completion *done)
 	 */
 	xnthread_resume(thread, XNDORMANT);
 	ret = xnthread_harden();
-	wakeup_parent(done);
+	wakeup_parent(thread);
 
 	xnlock_get_irqsave(&nklock, s);
 

@@ -33,6 +33,7 @@
 #include <cobalt/uapi/signal.h>
 #include <asm/xenomai/machine.h>
 #include <asm/xenomai/thread.h>
+#include <linux/irq_work.h>
 
 /**
  * @addtogroup cobalt_core_thread
@@ -200,6 +201,10 @@ struct xnthread {
 #endif
 
 	struct dovetail_altsched_context altsched;
+
+	struct completion *done;
+
+	struct irq_work irq_work;
 };
 
 static inline int xnthread_get_state(const struct xnthread *thread)
@@ -502,8 +507,7 @@ void xnthread_signal(struct xnthread *thread,
 
 void xnthread_pin_initial(struct xnthread *thread);
 
-int xnthread_map(struct xnthread *thread,
-		 struct completion *done);
+int xnthread_map(struct xnthread *thread);
 
 void xnthread_call_mayday(struct xnthread *thread, int reason);
 
