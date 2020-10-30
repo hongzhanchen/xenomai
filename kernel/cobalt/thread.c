@@ -2119,8 +2119,15 @@ void xnthread_relax(int notify, int reason)
 		suspension |= XNDBGSTOP;
 	}
 #endif
-#warning TODO
-	//set_current_state(p->state & ~TASK_NOWAKEUP);
+	/*
+	 * CAVEAT: dovetail_leave_oob() must run _before_ the in-band
+	 * kernel is allowed to take interrupts again, so that
+	 * try_to_wake_up() does not block the wake up request for the
+	 * switching thread as a result of testing
+	 * task_is_off_stage().
+	 */
+	dovetail_leave_oob();
+
 	xnthread_run_handler_stack(thread, relax_thread);
 	xnthread_suspend(thread, suspension, XN_INFINITE, XN_RELATIVE, NULL);
 	splnone();
@@ -2185,9 +2192,6 @@ void xnthread_relax(int notify, int reason)
 	 * delivery).
 	 */
 	xnthread_clear_localinfo(thread, XNSYSRST);
-
-#warning TODO: nothing to do here?
-//	ipipe_clear_thread_flag(TIP_MAYDAY);
 
 	trace_cobalt_shadow_relaxed(thread);
 }
