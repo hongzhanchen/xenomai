@@ -2193,53 +2193,36 @@ void xnthread_relax(int notify, int reason)
 }
 EXPORT_SYMBOL_GPL(xnthread_relax);
 
-#if 0
-struct lostage_signal {
-	struct ipipe_work_header work; /* Must be first. */
-	struct task_struct *task;
-	int signo, sigval;
-};
-
-static inline void do_kthread_signal(struct task_struct *p,
-				     struct xnthread *thread,
-				     struct lostage_signal *rq)
+static void do_inband_signal(struct xnthread *thread, int signo, int sigval)
 {
-	printk(XENO_WARNING
-	       "kernel shadow %s received unhandled signal %d (action=0x%x)\n",
-	       thread->name, rq->signo, rq->sigval);
-}
-
-static void lostage_task_signal(struct ipipe_work_header *work)
-{
-	struct lostage_signal *rq;
-	struct xnthread *thread;
-	struct task_struct *p;
-	kernel_siginfo_t si;
-	int signo;
-
-	rq = container_of(work, struct lostage_signal, work);
-	p = rq->task;
-
-	thread = xnthread_from_task(p);
-	if (thread && !xnthread_test_state(thread, XNUSER)) {
-		do_kthread_signal(p, thread, rq);
-		return;
-	}
-
-	signo = rq->signo;
-
-	trace_cobalt_lostage_signal(p, signo);
+	struct task_struct *p = thread->altsched.task;
+	struct kernel_siginfo si;
 
 	if (signo == SIGSHADOW || signo == SIGDEBUG) {
 		memset(&si, '\0', sizeof(si));
 		si.si_signo = signo;
 		si.si_code = SI_QUEUE;
-		si.si_int = rq->sigval;
+		si.si_int = sigval;
 		send_sig_info(signo, &si, p);
 	} else
 		send_sig(signo, p, 1);
 }
-#endif
+
+struct sig_irqwork_data {
+	struct xnthread *thread;
+	int signo, sigval;
+	struct irq_work work;
+};
+
+static void sig_irqwork(struct irq_work *work)
+{
+	struct sig_irqwork_data *sigd;
+
+	sigd = container_of(work, struct sig_irqwork_data, work);
+	do_inband_signal(sigd->thread, sigd->signo, sigd->sigval);
+	xnfree(sigd);
+
+}
 
 static int force_wakeup(struct xnthread *thread) /* nklock locked, irqs off */
 {
@@ -2402,20 +2385,24 @@ EXPORT_SYMBOL_GPL(xnthread_demote);
 
 void xnthread_signal(struct xnthread *thread, int sig, int arg)
 {
-#warning TODO
-/*	struct lostage_signal sigwork = {
-		.work = {
-			.size = sizeof(sigwork),
-			.handler = lostage_task_signal,
-		},
-		.task = xnthread_host_task(thread),
-		.signo = sig,
-		.sigval = sig == SIGDEBUG ? arg | sigdebug_marker : arg,
-	};
+	struct sig_irqwork_data *sigd;
 
-	trace_cobalt_lostage_request("signal", sigwork.task);
+	if (thread && !xnthread_test_state(thread, XNUSER))
+		return;
 
-	ipipe_post_work_root(&sigwork, work);*/
+	if (running_inband()) {
+		do_inband_signal(thread, sig, arg);
+		return;
+	}
+
+	sigd = xnmalloc(sizeof(*sigd));
+	init_irq_work(&sigd->work, sig_irqwork);
+	sigd->thread = thread;
+	sigd->signo = sig;
+	sigd->sigval = arg;
+
+	/* Cannot fail, irq_work is local to this call. */
+	irq_work_queue(&sigd->work);
 }
 EXPORT_SYMBOL_GPL(xnthread_signal);
 
