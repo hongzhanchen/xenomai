@@ -137,6 +137,16 @@ static inline int spawn_kthread(struct xnthread *thread)
 	return 0;
 }
 
+static void inband_task_wakeup(struct irq_work *work)
+{
+	struct xnthread *thread;
+	struct task_struct *p;
+
+	thread = container_of(work, struct xnthread, inband_work);
+	p = thread->altsched.task;
+	wake_up_process(p);
+}
+
 int __xnthread_init(struct xnthread *thread,
 		    const struct xnthread_init_attr *attr,
 		    struct xnsched *sched,
@@ -187,6 +197,7 @@ int __xnthread_init(struct xnthread *thread,
 	thread->selector = NULL;
 	INIT_LIST_HEAD(&thread->glink);
 	INIT_LIST_HEAD(&thread->boosters);
+	init_irq_work(&thread->inband_work, inband_task_wakeup);
 	/* These will be filled by xnthread_start() */
 	thread->entry = NULL;
 	thread->cookie = NULL;
@@ -1998,22 +2009,6 @@ static void lostage_task_wakeup(struct ipipe_work_header *work)
 }
 #endif
 
-static void post_wakeup(struct task_struct *p)
-{
-#warning TODO
-/*	struct lostage_wakeup wakework = {
-		.work = {
-			.size = sizeof(wakework),
-			.handler = lostage_task_wakeup,
-		},
-		.task = p,
-	};
-
-	trace_cobalt_lostage_request("wakeup", wakework.task);
-
-	ipipe_post_work_root(&wakework, work);*/
-}
-
 void __xnthread_propagate_schedparam(struct xnthread *curr)
 {
 	int kpolicy = SCHED_FIFO, kprio = curr->bprio, ret;
@@ -2099,7 +2094,8 @@ void xnthread_relax(int notify, int reason)
 	 * xnthread_suspend() has an interrupts-on section built in.
 	 */
 	splmax();
-	post_wakeup(p);
+	/*please refer to evl_switch_inband */
+	irq_work_queue(&thread->inband_work);
 	/*
 	 * Grab the nklock to synchronize the Linux task state
 	 * manipulation with handle_sigwake_event. This lock will be

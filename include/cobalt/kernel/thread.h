@@ -205,6 +205,8 @@ struct xnthread {
 	struct completion *done;
 
 	struct irq_work irq_work;
+
+	struct irq_work inband_work;
 };
 
 static inline int xnthread_get_state(const struct xnthread *thread)
