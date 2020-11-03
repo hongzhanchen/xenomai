@@ -238,47 +238,6 @@ err_out:
 	return ret;
 }
 
-void xnthread_init_shadow_tcb(struct xnthread *thread)
-{
-	struct xnarchtcb *tcb = xnthread_archtcb(thread);
-	struct task_struct *p = current;
-
-	/*
-	 * If the current task is a kthread, the pipeline will take
-	 * the necessary steps to make the FPU usable in such
-	 * context. The kernel already took care of this issue for
-	 * userland tasks (e.g. setting up a clean backup area).
-	 */
-#warning TODO
-	//__ipipe_share_current(0);
-
-	tcb->core.host_task = p;
-	tcb->core.tsp = &p->thread;
-	tcb->core.mm = p->mm;
-	tcb->core.active_mm = p->mm;
-	tcb->core.tip = task_thread_info(p);
-#ifdef CONFIG_XENO_ARCH_FPU
-	tcb->core.user_fpu_owner = p;
-#endif /* CONFIG_XENO_ARCH_FPU */
-#warning TODO?
-	//xnarch_init_shadow_tcb(thread);
-
-	trace_cobalt_shadow_map(thread);
-}
-
-void xnthread_init_root_tcb(struct xnthread *thread)
-{
-	struct xnarchtcb *tcb = xnthread_archtcb(thread);
-	struct task_struct *p = current;
-
-	tcb->core.host_task = p;
-	tcb->core.tsp = &tcb->core.ts;
-	tcb->core.mm = p->mm;
-	tcb->core.tip = NULL;
-#warning TODO?
-	//xnarch_init_root_tcb(thread);
-}
-
 void xnthread_deregister(struct xnthread *thread)
 {
 	if (thread->handle != XN_NO_HANDLE)
@@ -436,18 +395,6 @@ static inline void giveup_fpu(struct xnsched *sched,
 {
 	if (thread == sched->fpuholder)
 		sched->fpuholder = NULL;
-}
-
-void xnthread_switch_fpu(struct xnsched *sched)
-{
-	struct xnthread *curr = sched->curr;
-
-	if (!xnthread_test_state(curr, XNFPU))
-		return;
-
-#warning TODO: nothing to do? then general cleanup of FPU
-	//xnarch_switch_fpu(sched->fpuholder, curr);
-	sched->fpuholder = curr;
 }
 
 #else /* !CONFIG_XENO_ARCH_FPU */
@@ -1964,7 +1911,6 @@ int xnthread_harden(void)
 
 	/* "current" is now running into the Xenomai domain. */
 	sched = xnsched_finish_unlocked_switch(thread->sched);
-	xnthread_switch_fpu(sched);
 
 	xnlock_clear_irqon(&nklock);
 	xnsched_resched_after_unlocked_switch();
@@ -2531,7 +2477,6 @@ int xnthread_map(struct xnthread *thread)
 	xnthread_pin_initial(thread);
 	dovetail_init_altsched(&thread->altsched);
 
-	xnthread_init_shadow_tcb(thread);
 	xnthread_suspend(thread, XNRELAX, XN_INFINITE, XN_RELATIVE, NULL);
 	init_kthread_info(thread);
 	xnthread_set_state(thread, XNMAPPED);

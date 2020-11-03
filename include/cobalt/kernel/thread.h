@@ -429,15 +429,7 @@ int xnthread_wait_complete_p(struct xnthread_wait_context *wc)
 	return wc->posted;
 }
 
-#ifdef CONFIG_XENO_ARCH_FPU
-void xnthread_switch_fpu(struct xnsched *sched);
-#else
-static inline void xnthread_switch_fpu(struct xnsched *sched) { }
-#endif /* CONFIG_XENO_ARCH_FPU */
-
 void xnthread_init_shadow_tcb(struct xnthread *thread);
-
-void xnthread_init_root_tcb(struct xnthread *thread);
 
 void xnthread_deregister(struct xnthread *thread);
 

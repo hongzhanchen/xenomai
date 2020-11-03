@@ -214,7 +214,6 @@ static void xnsched_init(struct xnsched *sched, int cpu)
 	sched->fpuholder = &sched->rootcb;
 #endif /* CONFIG_XENO_ARCH_FPU */
 
-	xnthread_init_root_tcb(&sched->rootcb);
 	list_add_tail(&sched->rootcb.glink, &nkthreadq);
 	cobalt_nrthreads++;
 
@@ -1075,7 +1074,6 @@ reschedule:
 	 * because of relaxed/hardened transitions.
 	 */
 	curr = sched->curr;
-	xnthread_switch_fpu(sched);
 	xntrace_pid(task_pid_nr(current), xnthread_current_priority(curr));
 out:
 	if (switched &&
