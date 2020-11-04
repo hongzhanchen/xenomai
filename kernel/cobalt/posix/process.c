@@ -1530,7 +1530,8 @@ void handle_inband_event(enum inband_event_type event, void *data)
 		handle_setaffinity_event(data);
 		break;
 	case INBAND_TASK_EXIT:
-		handle_taskexit_event(current);
+		if (xnthread_current())
+			handle_taskexit_event(current);
 		break;
 	case INBAND_TASK_RETUSER:
 		handle_user_return(data);
