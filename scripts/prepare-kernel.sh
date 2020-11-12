@@ -432,6 +432,7 @@ patch_link r n include/cobalt/kernel/rtdm include/xenomai/rtdm
 patch_link r n include/cobalt/uapi include/xenomai/cobalt/uapi
 patch_link r n include/rtdm/uapi include/xenomai/rtdm/uapi
 patch_link n version.h include/xenomai include/xenomai
+patch_link n irq.h include/xenomai include/xenomai
 
 if test "x$output_patch" != "x"; then
     if test x$verbose = x1; then
