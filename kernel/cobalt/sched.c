@@ -986,11 +986,14 @@ static inline void do_lazy_user_work(struct xnthread *curr)
 	xnthread_commit_ceiling(curr);
 }
 
-int ___xnsched_run(struct xnsched *sched)
+int ___xnsched_run(void *vsched)
 {
 	struct xnthread *prev, *next, *curr;
 	int switched, shadow;
 	spl_t s;
+	struct xnsched *sched;
+
+	sched = (struct xnsched *)vsched;
 
 	XENO_WARN_ON_ONCE(COBALT, !hard_irqs_disabled() && running_inband());
 
